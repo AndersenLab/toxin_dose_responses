@@ -1,0 +1,1550 @@
+---
+title: "Heritability Analyses"
+site: workflowr::wflow_site
+output:
+  workflowr::wflow_html:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 4
+editor_options:
+  chunk_output_type: console
+---
+
+```{r include=FALSE}
+setwd("") # Set to GitHub Repo Path
+require(tidyverse)
+require(easyXpress)
+require(drc)
+require(knitr)
+require(kableExtra)
+require(ddpcr)
+require(nationalparkcolors)
+H2 <- function(d){
+  strain.fit <- lme4::lmer(data = d, formula = value ~ 1 + (1|strain))
+  variances <- lme4::VarCorr(x = strain.fit)
+  A <- as.data.frame(variances)
+  Vg <- A$vcov[1]
+  Ve <- A$vcov[2]
+  H2 <- Vg/(Vg+Ve)
+  return(H2)
+}
+H2.bootstrapping.calc <- function(d, nreps = 500, boot = T){
+  
+  if(boot == T){
+    H2.point <- H2(d = d)
+    H2.boots <- list()
+    for(i in 1:nreps) {
+      
+      nested <- d %>%
+        dplyr::group_by(strain) %>%
+        tidyr::nest()
+      
+      # Bootstrap
+      indices <- sample(c(1:length(nested$strain)), replace = T)
+      strains <- nested$strain[indices]
+      phenos <- nested$data[indices]
+      form.bootstrap <- function(strain,pheno.reps){
+        pheno.reps %>%
+          dplyr::mutate(strain = strain) %>%
+          dplyr::select(strain, replicate, value)
+      }
+      boot <- purrr::map2(strains, phenos, form.bootstrap) %>%
+        do.call(rbind,.)
+      
+      check <- boot %>%
+        dplyr::group_by(strain) %>%
+        dplyr::summarise(n())
+      if(1 %in% check$`n()`){
+        print("Only 1 Strain Sampled in Bootstrap - Skipping")
+        next
+      }
+      H2.est <- H2(d = boot)
+      H2.boots[i] <- H2.est
+    }
+    H2.boots.vec <- unlist(H2.boots)
+    H2.quantiles <- c(quantile(H2.boots.vec, probs = seq(0,1,0.05)))
+    H2.CI <- data.frame(H2.point, 
+                        as.numeric(H2.quantiles[2]), 
+                        as.numeric(H2.quantiles[21])) %>%
+      `colnames<-`(c("H2.Point.Estimate","H2.5.perc","H2.95.perc"))
+    return(H2.CI)
+    
+  } else {
+    
+    H2.point <- H2(d = d)
+    H2.CI <- data.frame(H2.point, 
+                        NA, 
+                        NA) %>%
+      `colnames<-`(c("H2.Point.Estimate","H2.5.perc","H2.95.perc"))
+    return(H2.CI)
+  }
+  
+}
+H2.bootstrapping.perm <- function(d, nreps = 500, perm = T){
+  
+  if(perm == T){
+    H2.point <- H2(d = d)
+    H2.perms <- list()
+    for(i in 1:nreps){
+      
+      nested <- d %>%
+        dplyr::group_by(strain) %>%
+        tidyr::nest()
+      
+      # Permutation
+      strains <- sample(nested$strain, replace=F)
+      phenos <- sample(nested$data, replace=F)
+      form.permutation <- function(strain,pheno.reps){
+        pheno.reps %>%
+          dplyr::mutate(strain = strain) %>%
+          dplyr::select(strain, replicate, value)
+      }
+      perm <- purrr::map2(strains, phenos, form.permutation) %>%
+        do.call(rbind,.)
+      H2.est <- H2(d = perm)
+      H2.perms[i] <- H2.est
+      }
+    H2.perms.vec <- unlist(H2.perms)
+    H2.quantiles <- c(quantile(H2.perms.vec, probs = seq(0,1,0.05)))
+    H2.CI <- data.frame(H2.point, 
+                        as.numeric(H2.quantiles[2]), 
+                        as.numeric(H2.quantiles[21])) %>%
+      `colnames<-`(c("H2.Point.Estimate","H2.5.perc","H2.95.perc"))
+    return(H2.CI)
+    } else {
+    
+    H2.point <- H2(d = d)
+    H2.CI <- data.frame(H2.point, 
+                        NA, 
+                        NA) %>%
+      `colnames<-`(c("H2.Point.Estimate","H2.5.perc","H2.95.perc"))
+    return(H2.CI)
+  }
+  
+}
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+    qnt <- stats::quantile(x, probs = c(0.25, 0.75), na.rm = na.rm, 
+      ...)
+    H <- 1.5 * stats::IQR(x, na.rm = na.rm)
+    y <- x
+    y[x < (qnt[1] - H)] <- NA
+    y[x > (qnt[2] + H)] <- NA
+    y
+}
+today <- format(Sys.time(), '%Y%m%d')
+```
+
+```{r Three-Model CP Data, message=FALSE, warning=FALSE, include=FALSE}
+
+##############
+## TOXIN 09 ##
+##############
+processed.toxin09A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200711_toxin09A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 10 ##
+##############
+processed.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A", 
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 11 ##
+##############
+processed.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200924_toxin11A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 12 ##
+##############
+processed.toxin12A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201105_toxin12A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201105_toxin12A_data_1605131334SJW.RData") %>%
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>%
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 14 ##
+##############
+processed.toxin14A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201210_toxin14A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+processed.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201211_toxin14B",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+##############
+## TOXIN 15 ##
+##############
+processed.toxin15A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201217_toxin15A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+processed.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201218_toxin15B",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 16 ##
+##############
+processed.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210129_toxin16A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 17 ##
+##############
+processed.toxin17A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210204_toxin17A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 18 ##
+##############
+processed.toxin18A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210211_toxin18A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210211_toxin18A_data_1613317121SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 19 ##
+##############
+processed.toxin19A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210218_toxin19A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210218_toxin19A_data_1614224793SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+```
+
+```{r MDHD CP Data, message=FALSE, warning=FALSE, include=FALSE}
+
+##############
+## TOXIN 09 ##
+##############
+MDHD.toxin09A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200711_toxin09A", 
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 10 ##
+##############
+MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A", 
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 11 ##
+##############
+MDHD.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200924_toxin11A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 12 ##
+##############
+MDHD.toxin12A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201105_toxin12A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201105_toxin12A_data_1605131334SJW.RData") %>%
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  # dplyr::filter(!drug %in% c("Nickel dichloride","Copper(II) chloride","Silver nitrate","Methomyl")) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>%
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 14 ##
+##############
+MDHD.toxin14A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201210_toxin14A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+MDHD.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201211_toxin14B",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+##############
+## TOXIN 15 ##
+##############
+MDHD.toxin15A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201217_toxin15A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+MDHD.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201218_toxin15B",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 16 ##
+##############
+MDHD.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210129_toxin16A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 17 ##
+##############
+MDHD.toxin17A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210204_toxin17A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 18 ##
+##############
+MDHD.toxin18A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210211_toxin18A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210211_toxin18A_data_1613317121SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 19 ##
+##############
+MDHD.toxin19A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210218_toxin19A",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210218_toxin19A_data_1614224793SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+# #### TIDY IMAGES #### (ifneedbe)
+# easyXpress::tidyImages(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", rm_other = T)
+# easyXpress::tidyProject(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", plates = "all")
+```
+
+```{r message=TRUE, warning=FALSE, include=FALSE}
+CP.data.list <- as.list(ls(pattern = "processed"))
+MDHD.data.list <- as.list(ls(pattern = "MDHD"))
+pull.toxin <- function(data, toxin){
+  assay <- get(data)
+  assay$summarized_processed[grep(assay$summarized_processed$drug, pattern = toxin, ignore.case = T),] %>%
+    dplyr::mutate(Metadata_Plate = gsub(x = Metadata_Plate, 
+                                        pattern = "p", 
+                                        replacement = ""),
+                  well_censor_reason = as.character(well_censor_reason),
+                  notes = as.character(notes),
+                  concentration_um = round(concentration_um, 1))
+}
+traits <- c("median_wormlength_um")
+clean.data <- function(raw.data){
+  
+  if(length(levels(as.factor(raw.data$Metadata_Experiment))) > 1){
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+    # Regression
+    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ Metadata_Experiment + bleach)
+    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ Metadata_Experiment + bleach)
+    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
+      dplyr::filter(!is.na(median_wormlength_um_reg))
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+    
+  } else {
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+
+    # Regression
+    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ bleach)
+    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ bleach)
+    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
+      dplyr::filter(!is.na(median_wormlength_um_reg))
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+  }
+  return(list(full_df_proc,drug.filtering.summary))
+}
+cleanData <- function(raw.data){
+  
+  if(length(levels(as.factor(raw.data$Metadata_Experiment))) > 1){
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um = remove_outliers(median_wormlength_um)) %>%
+      dplyr::filter(!is.na(median_wormlength_um))
+    
+    # Regression
+    median.reg <- lm(data = outlier.removed.drug.df, formula = median_wormlength_um ~ Metadata_Experiment + bleach)
+    mean.reg <- lm(data = outlier.removed.drug.df, formula = mean_wormlength_um ~ Metadata_Experiment + bleach)
+    outlier.removed.drug.df <- cbind(outlier.removed.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(outlier.removed.drug.df) <- c(colnames(outlier.removed.drug.df)[-c(length(colnames(outlier.removed.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+    
+  } else {
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um = remove_outliers(median_wormlength_um)) %>%
+      dplyr::filter(!is.na(median_wormlength_um))
+    
+    # Regression
+    median.reg <- lm(data = outlier.removed.drug.df, formula = median_wormlength_um ~ bleach)
+    mean.reg <- lm(data = outlier.removed.drug.df, formula = mean_wormlength_um ~ bleach)
+    outlier.removed.drug.df <- cbind(outlier.removed.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(outlier.removed.drug.df) <- c(colnames(outlier.removed.drug.df)[-c(length(colnames(outlier.removed.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+  }
+  return(list(full_df_proc,drug.filtering.summary))
+}
+make.reps <- function(x){
+  x$replicate <- seq(1,nrow(x))
+  x %>%
+    dplyr::rename(value = median_wormlength_um_reg)
+}
+drugHeritability <- function(rep.data, concentration_um){
+  no.reps <- rep.data %>%
+    dplyr::group_by(strain) %>%
+    dplyr::summarise(n = n())
+  
+  if(1 %in% no.reps$n){
+    H2.est <- data.frame("NA", "NA", "NA") %>%
+      dplyr::mutate(drug = unique(rep.data$drug),
+                    concentration = concentration_um) %>%
+      `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
+    
+    H2.est
+    
+  } else {
+    H2.est <- suppressMessages(as.data.frame(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T))) %>%
+      dplyr::mutate(drug = unique(rep.data$drug),
+                  concentration = concentration_um) %>%
+      `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
+    
+    H2.est
+  }
+}
+```
+
+```{r processing, echo=FALSE, message=FALSE, warning=FALSE}
+# Unfiltered
+all.dat <- processed.toxin09A$summarized_processed %>%
+  dplyr::full_join(processed.toxin10A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin11A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin14A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin14B$summarized_processed) %>%
+  dplyr::full_join(processed.toxin15A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin15B$summarized_processed) %>%
+  dplyr::full_join(processed.toxin16A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin17A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin18A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin19A$summarized_processed)
+
+all.dat <- all.dat %>%
+  dplyr::mutate(drug = if_else(drug == "copper",
+                        true = "Copper(II) chloride",
+                        false = drug),
+                drug = if_else(drug == "zinc", 
+                        true = "Zinc dichloride", 
+                        false = drug),
+                drug = if_else(drug == "methyl_mercury",
+                        true = "Methylmercury dichloride",
+                        false = drug),
+                drug = if_else(drug == "cadmium",
+                        true = "Cadmium dichloride",
+                        false = drug),
+                drug = if_else(drug == "nickel",
+                        true = "Nickel dichloride",
+                        false = drug),
+                drug = if_else(drug == "silver",
+                        true = "Silver nitrate",
+                        false = drug)) %>%
+  dplyr::mutate(drug = as.factor(stringr::str_to_sentence(drug)))
+
+pre.tab <- all.dat %>%
+  dplyr::group_by(drug, strain, Metadata_Experiment) %>%
+  tidyr::nest()
+
+tab <- list()
+for(i in 1:length(pre.tab$data)){
+  g <- pre.tab$data[[i]] %>%
+    dplyr::mutate(dose = as.factor(concentration_um),
+                  strain = pre.tab$strain[[i]],
+                  drug = pre.tab$drug[[i]],
+                  assay = pre.tab$Metadata_Experiment[[i]])
+  levels(g$dose) <- c(1:length(levels(g$dose)))
+  tab[[i]] <- g
+}
+raw.tab.dat <- Reduce(rbind, tab) %>%
+  dplyr::select(Metadata_Plate, assay, bleach, drug, strain, dose, n, median_wormlength_um, Metadata_Well)
+
+control.wells.variance <- raw.tab.dat %>%
+  dplyr::filter(dose == 1) %>%
+  dplyr::group_by(assay, bleach, strain) %>%
+  dplyr::summarise(mean.n = mean(n),
+                   sd.n = sd(n),
+                   cv.n = (sd.n/mean.n),
+                   mean.median_wormlength_um = mean(median_wormlength_um),
+                   sd.median_wormlength_um = sd(median_wormlength_um),
+                   cv.worm.length = sd(median_wormlength_um)/mean(median_wormlength_um)) %>%
+  tidyr::pivot_longer(cols = !c(assay, bleach, strain), names_to = "metric")
+
+cv.n.censor <- control.wells.variance %>%
+  dplyr::filter(metric == "cv.n") %>%
+  dplyr::group_by(assay, bleach) %>%
+  dplyr::summarise(median = median(value)) %>%
+  dplyr::mutate(cv.censor = if_else(condition = median > 0.5, true = 1, false = 0)) %>%
+  dplyr::rename(Metadata_Experiment = assay)
+```
+
+## Silver nitrate
+```{r Silver, echo=FALSE, message=FALSE, warning=FALSE}
+silver <- purrr::map2(MDHD.data.list, 
+                      "silver",
+                      pull.toxin)
+silver.df <- Reduce(rbind,silver) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  # dplyr::filter(Metadata_Experiment != "toxin10A") %>%
+  cleanData(.)
+
+drug.data.nested <- silver.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+silverH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+silverH2.df <- do.call(rbind, silverH2)
+options(scipen = 9999999)
+ggplot(silverH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(silverH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Cadmium dichloride
+```{r Cadmium, echo=FALSE, message=FALSE, warning=FALSE}
+cadmium <- purrr::map2(MDHD.data.list, 
+                      "cadmium",
+                      pull.toxin)
+cadmium.df <- Reduce(rbind,cadmium) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(Metadata_Experiment != "toxin09A") %>%
+  cleanData(.)
+
+drug.data.nested <- cadmium.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+cadmiumH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+cadmiumH2.df <- do.call(rbind, cadmiumH2)
+options(scipen = 9999999)
+ggplot(cadmiumH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(cadmiumH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Copper (II) dichloride
+```{r copper, echo=FALSE, message=FALSE, warning=FALSE}
+copper <- purrr::map2(MDHD.data.list, 
+                      "copper",
+                      pull.toxin)
+copper.df <- Reduce(rbind,copper) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- copper.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+copperH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+copperH2.df <- do.call(rbind, copperH2)
+options(scipen = 9999999)
+ggplot(copperH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(copperH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Nickel dichloride
+```{r nickel, echo=FALSE, message=FALSE, warning=FALSE}
+nickel <- purrr::map2(MDHD.data.list, 
+                      "nickel",
+                      pull.toxin)
+nickel.df <- Reduce(rbind,nickel) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- nickel.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+nickelH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+nickelH2.df <- do.call(rbind, nickelH2)
+options(scipen = 9999999)
+ggplot(nickelH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(nickelH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Paraquat
+```{r paraquat, echo=FALSE, message=FALSE, warning=FALSE}
+paraquat <- purrr::map2(MDHD.data.list, 
+                        "paraquat",
+                        pull.toxin)
+paraquat.df <- Reduce(rbind,paraquat) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin10A","toxin11A")) %>%
+  cleanData(.)
+
+drug.data.nested <- paraquat.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+paraquatH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+paraquatH2.df <- do.call(rbind, paraquatH2)
+options(scipen = 9999999)
+ggplot(paraquatH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(paraquatH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Zinc dichloride
+```{r zinc, echo=FALSE, message=FALSE, warning=FALSE}
+zinc <- purrr::map2(CP.data.list, 
+                        "zinc",
+                        pull.toxin)
+zinc.df <- Reduce(rbind,zinc) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- zinc.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+zincH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+zincH2.df <- do.call(rbind, zincH2)
+options(scipen = 9999999)
+ggplot(zincH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(zincH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Pyraclostrobin
+```{r pyraclostrobin, echo=FALSE, message=FALSE, warning=FALSE}
+pyraclostrobin <- purrr::map2(CP.data.list, 
+                        "pyraclostrobin",
+                        pull.toxin)
+
+print("Excluding toxin11A: Inconsistent Response")
+pyraclostrobin.df <- Reduce(rbind,pyraclostrobin) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(Metadata_Experiment != "toxin11A") %>%
+  cleanData(.)
+
+drug.data.nested <- pyraclostrobin.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+pyraclostrobinH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+pyraclostrobinH2.df <- do.call(rbind, pyraclostrobinH2)
+options(scipen = 9999999)
+ggplot(pyraclostrobinH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(pyraclostrobinH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Aldicarb
+```{r aldicarb, echo=FALSE, message=FALSE, warning=FALSE}
+aldicarb <- purrr::map2(MDHD.data.list, 
+                        "aldicarb",
+                        pull.toxin)
+aldicarb.df <- Reduce(rbind,aldicarb) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(Metadata_Experiment != "toxin10A") %>%
+  cleanData(.)
+
+drug.data.nested <- aldicarb.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+aldicarbH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+aldicarbH2.df <- do.call(rbind, aldicarbH2)
+options(scipen = 9999999)
+ggplot(aldicarbH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(aldicarbH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Chlorfenapyr
+```{r chlorfenapyr, echo=FALSE, message=FALSE, warning=FALSE}
+chlorfenapyr <- purrr::map2(MDHD.data.list, 
+                        "chlorfenapyr",
+                        pull.toxin)
+
+print("Excluding toxin09A, toxin10A, toxin11A, toxin12A: No Response/Variable Dilution")
+chlorfenapyr.df <- Reduce(rbind,chlorfenapyr) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% 
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%## from combining 9,10,11
+  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin10A","toxin11A","toxin12A")) %>% ## from combining 9,10,11
+  cleanData(.)
+
+drug.data.nested <- chlorfenapyr.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+chlorfenapyrH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+chlorfenapyrH2.df <- do.call(rbind, chlorfenapyrH2)
+options(scipen = 9999999)
+ggplot(chlorfenapyrH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(chlorfenapyrH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Methomyl
+```{r methomyl, echo=FALSE, message=FALSE, warning=FALSE}
+methomyl <- purrr::map2(MDHD.data.list, 
+                        "methomyl",
+                        pull.toxin)
+
+methomyl.df <- Reduce(rbind,methomyl) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% ## from combining 9,10,11
+  cleanData(.)
+
+drug.data.nested <- methomyl.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+methomylH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+methomylH2.df <- do.call(rbind, methomylH2)
+options(scipen = 9999999)
+ggplot(methomylH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(methomylH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Methylmercury dichloride
+```{r mercury, echo=FALSE, message=FALSE, warning=FALSE}
+mercury <- purrr::map2(MDHD.data.list, 
+                        "mercury",
+                        pull.toxin)
+
+mercury.df <- Reduce(rbind,mercury) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% ## from combining 9,10,11
+  cleanData(.)
+
+drug.data.nested <- mercury.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+mercuryH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+mercuryH2.df <- do.call(rbind, mercuryH2)
+options(scipen = 9999999)
+ggplot(mercuryH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(mercuryH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Triphenyl phosphate
+```{r tpp, echo=FALSE, message=FALSE, warning=FALSE}
+tpp <- purrr::map2(CP.data.list, 
+                   "triphenyl",
+                   pull.toxin)
+tpp.df <- Reduce(rbind,tpp) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% ## from combining 9,10,11
+  cleanData(.)
+
+drug.data.nested <- tpp.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+tppH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+tppH2.df <- do.call(rbind, tppH2)
+options(scipen = 9999999)
+ggplot(tppH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(tppH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Arsenic trioxide
+```{r arsenic, echo=FALSE, message=FALSE, warning=FALSE}
+arsenic <- purrr::map2(CP.data.list, 
+                   "Arsenic",
+                   pull.toxin)
+arsenic.df <- Reduce(rbind,arsenic) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- arsenic.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+arsenicH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+arsenicH2.df <- do.call(rbind, arsenicH2) %>%
+  dplyr::filter(H2 != "NA") %>%
+  dplyr::mutate(H2 = as.numeric(H2),
+                lower = as.numeric(lower),
+                upper = as.numeric(upper))
+
+options(scipen = 9999999)
+ggplot(arsenicH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(arsenicH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Carbaryl
+```{r carbaryl, echo=FALSE, message=FALSE, warning=FALSE}
+carbaryl <- purrr::map2(CP.data.list, 
+                   "Carbaryl",
+                   pull.toxin)
+carbaryl.df <- Reduce(rbind,carbaryl) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- carbaryl.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+carbarylH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+carbarylH2.df <- do.call(rbind, carbarylH2)
+options(scipen = 9999999)
+ggplot(carbarylH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(carbarylH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Carboxin
+```{r carboxin, echo=FALSE, message=FALSE, warning=FALSE}
+carboxin <- purrr::map2(CP.data.list, 
+                   "Carboxin",
+                   pull.toxin)
+carboxin.df <- Reduce(rbind,carboxin) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- carboxin.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+carboxinH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+carboxinH2.df <- do.call(rbind, carboxinH2)
+options(scipen = 9999999)
+ggplot(carboxinH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(carboxinH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Chlorpyrifos
+```{r chlorpyrifos, echo=FALSE, message=FALSE, warning=FALSE}
+chlorpyrifos <- purrr::map2(CP.data.list, 
+                   "Chlorpyrifos",
+                   pull.toxin)
+print("Excluding toxin17A: No Response")
+chlorpyrifos.df <- Reduce(rbind,chlorpyrifos) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(!Metadata_Experiment %in% c("toxin17A")) %>% 
+  cleanData(.)
+
+drug.data.nested <- chlorpyrifos.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+chlorpyrifosH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+chlorpyrifosH2.df <- do.call(rbind, chlorpyrifosH2) %>%
+  dplyr::filter(H2 != "NA") %>%
+  dplyr::mutate(H2 = as.numeric(H2),
+                lower = as.numeric(lower),
+                upper = as.numeric(upper))
+options(scipen = 9999999)
+ggplot(chlorpyrifosH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(chlorpyrifosH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Lead (II) nitrate
+```{r lead, echo=FALSE, message=FALSE, warning=FALSE}
+lead <- purrr::map2(CP.data.list, 
+                   "Lead",
+                   pull.toxin)
+lead.df <- Reduce(rbind,lead) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- lead.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+leadH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+
+leadH2.df <- do.call(rbind, leadH2) %>%
+  dplyr::filter(H2 != "NA") %>%
+  dplyr::mutate(H2 = as.numeric(H2),
+                lower = as.numeric(lower),
+                upper = as.numeric(upper))
+options(scipen = 9999999)
+ggplot(leadH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(leadH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+## Atrazine
+```{r atrazine, echo=FALSE, message=FALSE, warning=FALSE}
+atrazine <- purrr::map2(CP.data.list, 
+                   "Atrazine",
+                   pull.toxin)
+atrazine.df <- Reduce(rbind,atrazine) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+drug.data.nested <- atrazine.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+atrazineH2 <- purrr::map2(drug.data.nested.reps$data,
+            drug.data.nested.reps$concentration_um,
+            drugHeritability)
+atrazineH2.df <- do.call(rbind, atrazineH2)
+options(scipen = 9999999)
+ggplot(atrazineH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = unique(atrazineH2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+```
+
+```{r Summary, echo=FALSE, message=FALSE, warning=FALSE}
+all.herits <- ls(pattern = "H2.df")
+combined.herits <- list()
+for(i in 1:length(all.herits)){
+  combined.herits[[i]] <- get(all.herits[[i]])
+}
+H2.summary <- do.call(rbind, combined.herits)
+options(scipen = 9999999)
+ggplot(H2.summary, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
+  theme_bw() + 
+  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
+  ylim(c(0,1)) +
+  geom_hline(yintercept = 0.3, linetype = 3) + 
+  facet_wrap(drug~., scales = "free") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(title = "Broad-Sense Heritability: All Toxins", 
+       x = "Concentration (uM)",
+       y = bquote(H^2))
+ggsave(paste0("output/H2.plot.",today,".png"), width = 8, height = 5)
+
+```
+

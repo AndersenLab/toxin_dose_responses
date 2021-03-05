@@ -1,0 +1,816 @@
+---
+title: "What's in a Dose-Response Model?"
+site: workflowr::wflow_site
+output:
+  workflowr::wflow_html:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 4
+editor_options:
+  chunk_output_type: console
+---
+## Purpose:
+* Compile past assay results.
+* Evaluate toxicant susceptibility estimates for strain.
+
+## Analysis Date: `r format(Sys.time(), '%B %d, %Y')`
+
+```{r include=FALSE}
+setwd("~/Dropbox/HTA_ImageXpress/Projects/") # Set to GitHub Repo Path
+require(tidyverse)
+require(easyXpress)
+require(drc)
+require(knitr)
+require(kableExtra)
+require(ddpcr)
+require(RCurl)
+require(glue)
+require(nationalparkcolors)
+require(ggrepel)
+require(RColorBrewer)
+# Custom function to find tick vector
+logticks <- function(datavar,type) {
+      minimum <- 1/10^abs(floor(log10(min(datavar, na.rm=TRUE))))
+      maximum <- 1*10^abs(floor(log10(max(datavar, na.rm=TRUE)))+1)
+      multiple <- floor(log10(maximum/minimum))
+      
+      yourtickvector <- c()
+      
+      if (type=="breaks") {
+        
+        yourtickvector <- c(minimum)
+        
+        for (x in seq(0,multiple)) {
+          
+          andadd <- seq(minimum*10^x,minimum*10^(x+1),minimum*10^x)[-1]
+          
+          yourtickvector <- c(yourtickvector,andadd)
+          
+        }
+      } else if (type=="labels") {
+        
+        for (x in seq(0,multiple)) {
+          
+          andadd <- c(minimum*10^x,rep("",8))
+          
+          yourtickvector <- c(yourtickvector,andadd)
+          
+        }
+        
+        yourtickvector <- c(yourtickvector,minimum*10^multiple)
+        
+      }
+      
+      return(yourtickvector)
+      
+    }
+fit_all_models <- function(data, traits, ...){
+  # extract concentration variable name
+  conc_var_name <- str_subset(names(data), pattern = "concentration_um")
+  # dose-response model inference
+  safe_W14 <- purrr::safely(.f = ~ drc::drm(data = ., fct = W1.4()),
+                            otherwise = "Unable to optimize model")
+  safe_LL4 <- purrr::safely(.f = ~ drc::drm(data = ., fct = LL.4()),
+                            otherwise = "Unable to optimize model")
+  safe_LN4 <- purrr::safely(.f = ~ drc::drm(data = ., fct = LN.4()),
+                            otherwise = "Unable to optimize model")
+  safe_ED <- function(fit){
+    if(is.character(fit$result)){print("Unable to optimize model")} 
+    else {
+      drc::ED(object = fit$result, c(10, 50, 90), interval = "delta", display = FALSE)
+      }
+  }
+  safe_predict <- function(data, fit){
+    if(is.character(fit$result)){print("Unable to optimize model")}
+    else{
+      expand.grid(conc = exp(seq(log(max(data$concentration_um)),
+                                 log(min(data$concentration_um[data$concentration_um!=min(data$concentration_um)])),
+                                 length = 100))) %>%
+        dplyr::bind_cols(., tibble::as.tibble(predict(fit$result, newdata=., interval="confidence")))
+    }
+    
+  }
+  
+  # gather trait data, nest by grouping variables and trait, fit drc, find ED10, ED50, ED90, and make predictions.
+  W14_fit_data <- data %>%
+    dplyr::select(Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, 
+                  contains("wormlength"), concentration_um := !!glue::glue("{conc_var_name}")) %>% # rename concentration_um variable adds flexibility for units
+    tidyr::gather(trait, value, -drug, -strain, -concentration_um, -Metadata_Plate, -Metadata_Well, -Metadata_Experiment, -bleach) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, value, concentration_um) %>% # reorder for drc::drm
+    dplyr::filter(trait %in% traits) %>% # filter to traits provided in arguments
+    # dplyr::group_by(drug, strain, trait, Metadata_Experiment) %>% 
+    dplyr::group_by(drug, strain, trait) %>% # should eventually be "..." passed from function + trait
+    tidyr::nest() %>%
+    mutate(fit = purrr::map(data, safe_W14),
+           ED = purrr::map(fit, safe_ED),
+           predictions = purrr::map2(data, fit, safe_predict),
+           model = "W1.4")
+  
+  LL4_fit_data <- data %>%
+    dplyr::select(Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, 
+                  contains("wormlength"), concentration_um := !!glue::glue("{conc_var_name}")) %>%
+    tidyr::gather(trait, value, -drug, -strain, -concentration_um, -Metadata_Plate, -Metadata_Well, -Metadata_Experiment, -bleach) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, value, concentration_um) %>% # reorder for drc::drm
+    dplyr::filter(trait %in% traits) %>% # filter to traits provided in arguments
+    # dplyr::group_by(drug, strain, trait, Metadata_Experiment) %>% 
+    dplyr::group_by(drug, strain, trait) %>% # should eventually be "..." passed from function + trait
+    tidyr::nest() %>%
+    mutate(fit = purrr::map(data, safe_LL4),
+           ED = purrr::map(fit, safe_ED),
+           predictions = purrr::map2(data, fit, safe_predict),
+           model = "LL.4")
+  
+  LN4_fit_data <- data %>%
+    dplyr::select(Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, 
+                  contains("wormlength"), concentration_um := !!glue::glue("{conc_var_name}")) %>% # rename concentration_um variable adds flexibility for units
+    tidyr::gather(trait, value, -drug, -strain, -concentration_um, -Metadata_Plate, -Metadata_Well, -Metadata_Experiment, -bleach) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, value, concentration_um) %>% # reorder for drc::drm
+    dplyr::filter(trait %in% traits) %>% # filter to traits provided in arguments
+    # dplyr::group_by(drug, strain, trait, Metadata_Experiment) %>% 
+    dplyr::group_by(drug, strain, trait) %>% # should eventually be "..." passed from function + trait
+    tidyr::nest() %>%
+    mutate(fit = purrr::map(data, safe_LN4),
+           ED = purrr::map(fit, safe_ED),
+           predictions = purrr::map2(data, fit, safe_predict),
+           model = "LN.4")
+  
+   model.fits.list <- list(W14_fit_data, LL4_fit_data, LN4_fit_data)
+   return(model.fits.list)
+}
+synthesize.EC50 <- purrr::safely(.f = function(ED, strain, drug, trait, assay = FALSE){
+  
+  if(assay == FALSE){
+    ED[rownames(ED) %in% "e:1:50",] %>%
+    as.data.frame() %>%
+    t() %>%
+    `colnames<-`(c("EC50.est","SE","LOWER","UPPER")) %>%
+    as.data.frame() %>%
+    dplyr::mutate(strain = strain) %>%
+    dplyr::mutate(toxin = drug) %>%
+    dplyr::mutate(trait = trait)
+  } else {
+    ED[rownames(ED) %in% "e:1:50",] %>%
+    as.data.frame() %>%
+    t() %>%
+    `colnames<-`(c("EC50.est","SE","LOWER","UPPER")) %>%
+    as.data.frame() %>%
+    dplyr::mutate(strain = strain) %>%
+    dplyr::mutate(assay = assay) %>%
+    dplyr::mutate(toxin = drug) %>%
+    dplyr::mutate(trait = trait)
+  }
+  
+  
+  
+  
+  }, otherwise = "Unable to estimate EC50")
+plot_EC50s_on_DRC <- function(all.model.list, toxin, metadata){
+  
+  # extract concentration_um variable name
+  dat <- data.frame(all.model.list[[1]]$data)
+  conc_var_name <- str_subset(colnames(dat), pattern = "concentration_um")
+
+  
+  # Combined Strains from All Assays
+  phenotype_data <- all.model.list[[1]] %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(data = as.list(data)) %>% # need to convert to list to use unnest properly
+    dplyr::select(drug, strain, trait, data) %>%
+    tidyr::unnest(data) %>%
+    as.data.frame(.) %>%
+    dplyr::mutate(value = as.double(value))
+
+  W14_predictions <- all.model.list[[1]] %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, predictions, model) %>%
+    tidyr::unnest(cols = c(predictions)) %>%
+    as.data.frame(.)
+  ECs.W14 <- all.model.list[[1]] %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, ED, model) %>%
+    tidyr::unnest(cols = c(ED)) %>%
+    as.data.frame(.)
+  
+  LL4_predictions <- all.model.list[[2]] %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, predictions, model) %>%
+    tidyr::unnest(cols = c(predictions)) %>%
+    as.data.frame(.)
+  ECs.LL4 <- all.model.list[[2]] %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, ED, model) %>%
+    tidyr::unnest(cols = c(ED)) %>%
+    as.data.frame(.)
+  
+  LN4_predictions <- all.model.list[[3]] %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, predictions, model) %>%
+    tidyr::unnest(cols = c(predictions)) %>%
+    as.data.frame(.)
+  ECs.LN4 <- all.model.list[[3]] %>%
+    dplyr::ungroup() %>%
+    dplyr::select(drug, strain, trait, ED, model) %>%
+    tidyr::unnest(cols = c(ED)) %>%
+    as.data.frame(.)
+  
+  drug_data <- phenotype_data
+
+  
+  ## EC50s for each DRM ##
+  # drug_ECs <- ECs.W14[2,] %>%
+  #   dplyr::full_join(ECs.LL4[2,]) %>%
+  #   dplyr::full_join(ECs.LN4[2,])
+  # drug_predictions <- W14_predictions %>%
+  #   dplyr::full_join(LL4_predictions) %>%
+  #   dplyr::full_join(LN4_predictions)
+  
+  ## EC10, EC50, EC90 for SINGLE DRM model (Log-Logistic; LL4) ##
+  drug_ECs <- ECs.LL4[1,] %>%
+    dplyr::full_join(ECs.LL4[2,]) %>%
+    dplyr::full_join(ECs.LL4[3,]) %>%
+    dplyr::mutate(fraction = c("EC10","EC50","EC90"))
+  drug_predictions <- LL4_predictions
+  drug_predictions <- drug_predictions %>%
+    dplyr::full_join(.,data.frame(drug_ECs$ED[,1], drug_ECs$model, drug_ECs$fraction) %>% 
+                       `colnames<-`(c("EC","model","fraction")))
+  
+  for(j in 1:length(unique(phenotype_data$trait))){
+      
+  # Assay Info
+  trait_data <- drug_data %>% 
+    dplyr::filter(trait == unique(phenotype_data$trait)[j])
+  trait_predictions <- drug_predictions %>% 
+    dplyr::filter(trait == unique(phenotype_data$trait)[j]) %>%
+    dplyr::filter(!is.na(Prediction)) %>%
+    droplevels()
+  assay.info <- metadata %>%
+    dplyr::select(Metadata_Experiment, bleach, strain, drug, concentration_um) %>%
+    dplyr::ungroup()
+    
+  joined.assay.info <- data.frame(cbind(assay.info, trait_data))
+  if(nrow(trait_predictions) == 0){
+          next
+  }
+  options(scipen = 999999)
+  plot <- ggplot(data = joined.assay.info, aes(x = concentration_um, 
+                                               y = value)) +
+    theme_bw(base_size = 9) +
+    geom_point(data = joined.assay.info, 
+               shape = 21, 
+               alpha = 0.75,
+               aes(fill = Metadata_Experiment)) +
+    # Predictions Section
+    geom_ribbon(data = trait_predictions, aes(x = conc, 
+                                              y = Prediction, 
+                                              group = model, 
+                                              ymin = Lower, 
+                                              ymax = Upper), alpha = 0.2) +
+    geom_line(data = trait_predictions, aes(x = conc, y = Prediction)) +
+    geom_vline(data = trait_predictions, aes(xintercept = EC, color = fraction)) + # COLOR BY EC FRACTION
+    # geom_vline(data = trait_predictions, aes(xintercept = EC, color = model)) +  # COLOR BY MODEL
+    # theme(legend.position = c(0.175,0.2), 
+    #       legend.text = element_text(size = 4),
+    #       legend.title = element_text(size = 4),
+    #       legend.box = "horizontal",
+    #       legend.background = element_rect(fill="white",
+    #                                        size=0.5, 
+    #                                        linetype="solid", 
+    #                                        colour ="black")) + 
+    theme(legend.position = "none") + 
+    scale_x_log10(breaks = logticks(c(trait_predictions$conc, max(trait_predictions$EC)),"breaks"),
+                  labels = logticks(c(trait_predictions$conc, max(trait_predictions$EC)), "labels")) +
+    scale_colour_manual(name = "Fraction", values = c("#ff5c5c","#ff0000","#8f0000")) + # COLOR BY MODEL
+    # scale_colour_manual(name = "Dose-Response Model", values = c("#47682C","#8C7051","#EF3054")) + # COLOR BY MODEL
+    scale_fill_manual(name = "Assay", values = brewer.pal(n = 5, name = "Set1")) +
+    labs(y = "Relative Worm Length (um)",
+         x = "Concentration (uM)",
+         title = stringr::str_to_title(toxin)) + 
+    theme(plot.title = element_text(hjust = 0.5))
+  print(plot)
+  }# trait loop
+  
+}
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+    qnt <- stats::quantile(x, probs = c(0.25, 0.75), na.rm = na.rm, 
+      ...)
+    H <- 1.5 * stats::IQR(x, na.rm = na.rm)
+    y <- x
+    y[x < (qnt[1] - H)] <- NA
+    y[x > (qnt[2] + H)] <- NA
+    y
+  }
+```
+
+```{r Three-Model CP Data, message=FALSE, warning=FALSE, include=FALSE}
+##############
+## TOXIN 01 ##
+##############
+processed.toxin01A <- easyXpress::readXpress(filedir = "20200130_toxin01A", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200130_toxin01A_data_1602947746SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+processed.toxin01B <- easyXpress::readXpress(filedir = "20200131_toxin01B", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200131_toxin01B_data_1602948785SJW.RData") %>%
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+##############
+## TOXIN 02 ##
+##############
+processed.toxin02A <- easyXpress::readXpress(filedir = "20200206_toxin02A", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200206_toxin02A_data_1602953445SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+processed.toxin02B <- easyXpress::readXpress(filedir = "20200207_toxin02B", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200207_toxin02B_data_1602953934SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 04 ##
+##############
+processed.toxin04A <- easyXpress::readXpress(filedir = "20200221_toxin04A", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200221_toxin04A_data_1602957415SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+##############
+## TOXIN 08 ##
+##############
+processed.toxin08A <- easyXpress::readXpress(filedir = "20200625_toxin08A", 
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200625_toxin08A_data_1602969159SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+processed.toxin08B <- easyXpress::readXpress(filedir = "20200626_toxin08B", 
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200626_toxin08B_data_1602969448SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+```
+
+```{r MDHD CP Data, message=FALSE, warning=FALSE, include=FALSE}
+###################
+## TOXIN 01  MDHD##
+###################
+MDHD.toxin01A <- easyXpress::readXpress(filedir = "20200130_toxin01A", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200130_toxin01A_data_1602947746SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+MDHD.toxin01B <- easyXpress::readXpress(filedir = "20200131_toxin01B", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200131_toxin01B_data_1602948785SJW.RData") %>%
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+###################
+## TOXIN 02 MDHD ##
+###################
+MDHD.toxin02A <- easyXpress::readXpress(filedir = "20200206_toxin02A", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200206_toxin02A_data_1602953445SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+MDHD.toxin02B <- easyXpress::readXpress(filedir = "20200207_toxin02B", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200207_toxin02B_data_1602953934SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+###################
+## TOXIN 04 MDHD ##
+###################
+MDHD.toxin04A <- easyXpress::readXpress(filedir = "20200221_toxin04A", 
+                                             design = T, 
+                                             rdafile = "CellProfiler-Analysis_20200221_toxin04A_data_1602957415SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+###################
+## TOXIN 08 MDHD ##
+###################
+MDHD.toxin08A <- easyXpress::readXpress(filedir = "20200625_toxin08A", 
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200625_toxin08A_data_1602969159SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+MDHD.toxin08B <- easyXpress::readXpress(filedir = "20200626_toxin08B", 
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20200626_toxin08B_data_1602969448SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+```
+
+```{r, message=TRUE, warning=FALSE, include=FALSE}
+CP.data.list <- as.list(ls(pattern = "processed"))
+MDHD.data.list <- as.list(ls(pattern = "MDHD"))
+pull.toxin <- function(data, toxin){
+  assay <- get(data)
+  assay$summarized_processed %>%
+    dplyr::filter(drug == toxin) %>%
+    dplyr::mutate(Metadata_Plate = gsub(x = Metadata_Plate, 
+                                        pattern = "p", 
+                                        replacement = ""),
+                  well_censor_reason = as.character(well_censor_reason),
+                  notes = as.character(notes))
+}
+toxins <- c("silver","cadmium","copper","nickel","paraquat","zinc",
+            "pyraclostrobin","aldicarb","chlorfenapyr","methomyl","methyl_mercury","triphenyl_phosphate",
+            "parathion","atrazine","carboxin","lead","malathion","permethrin",
+            "2_4_D","carbaryl","chlorpyrifos","Deltamethrin","D-phenothrin","propoxur",
+            "manganese","chlorothalonil","mancozeb","arsenic")
+
+desired.n.worm.models <- c(4,4,4,4,4,3,
+                           3,4,4,4,4,3,
+                           3,3,3,3,3,3,
+                           3,3,3,3,3,3,
+                           3,3,3,3)
+
+traits <- c("median_wormlength_um")
+```
+
+## Dose-Response Model Comparison Plots
+
+```{r echo=FALSE, fig.height=5, fig.width=7, message=FALSE, warning=FALSE}
+for(i in 1:length(toxins)){
+  print(paste0(toxins[i],": ",desired.n.worm.models[i]," worm models assessed"))
+  toxin = toxins[i]
+  if(desired.n.worm.models[i] == 3){
+    drug.list <- purrr::map2(CP.data.list, toxin,pull.toxin)
+  } else if(desired.n.worm.models[i] == 4){
+    drug.list <- purrr::map2(MDHD.data.list, toxin,pull.toxin)
+  } else {
+    print("No CP Data for Desired Worm Model Assessment")
+    next
+  }
+  
+  drug.df <- do.call(rbind, drug.list)
+  if(length(levels(as.factor(drug.df$Metadata_Experiment))) > 1){
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- drug.df %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    # Regression
+    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ Metadata_Experiment + bleach)
+    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ Metadata_Experiment + bleach)
+    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um) %>% 
+      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
+      dplyr::filter(!is.na(median_wormlength_um_reg))
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno,bleach, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    
+    drug.drm <- suppressMessages(fit_all_models(data = full_df_proc, 
+                                                traits = "median_wormlength_um_reg"))
+    diditwork <- c(is.character(drug.drm[[1]]$ED[[1]]), 
+                   is.character(drug.drm[[2]]$ED[[1]]), 
+                   is.character(drug.drm[[3]]$ED[[1]]))
+    if(TRUE %in% diditwork){next} else {
+      print(paste0(stringr::str_to_title(toxin),": ",round(nrow(full_df_proc)/nrow(drug.df)*100, 2),"% of original wells retained"))
+      plot_EC50s_on_DRC(all.model.list = drug.drm, toxin = toxin, metadata = full_df_proc)
+    }
+    EC.list <- list()
+    for(i in 1:length(drug.drm)){
+      EC.list[[i]] <- drug.drm[[i]]$ED %>%
+        as.data.frame() %>%
+        dplyr::mutate(model = drug.drm[[i]]$model,
+                      drug = drug.drm[[i]]$drug,
+                      trait = drug.drm[[i]]$trait,
+                      fraction = rownames(.))
+    }
+    EC.est.df <- do.call(rbind,EC.list) %>%
+      dplyr::mutate(above.max.conc = Estimate > max(drug.df$concentration_um))
+    assign(paste(toxin,"EC.estimates",sep = "."), EC.est.df)
+    
+  } else {
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- drug.df %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    # Regression
+    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ bleach)
+    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ bleach)
+    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um) %>% 
+      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
+      dplyr::filter(!is.na(median_wormlength_um_reg))
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(bleach) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno,bleach) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    
+    
+    drug.drm <- suppressMessages(fit_all_models(data = full_df_proc, traits = "median_wormlength_um_reg"))
+    diditwork <- c(is.character(drug.drm[[1]]$ED[[1]]), 
+                       is.character(drug.drm[[2]]$ED[[1]]), 
+                       is.character(drug.drm[[3]]$ED[[1]]))
+    if(TRUE %in% diditwork){
+      next
+    } else {
+      print(paste0(stringr::str_to_title(toxin),": ",round(nrow(full_df_proc)/nrow(drug.df)*100, 2),"% of original wells retained"))
+      plot_EC50s_on_DRC(all.model.list = drug.drm, toxin = toxin, metadata = full_df_proc)
+    }
+    
+    EC.list <- list()
+    for(i in 1:length(drug.drm)){
+      EC.list[[i]] <- drug.drm[[i]]$ED %>%
+        as.data.frame() %>%
+        dplyr::mutate(model = drug.drm[[i]]$model,
+                      drug = drug.drm[[i]]$drug,
+                      trait = drug.drm[[i]]$trait,
+                      fraction = rownames(.))
+    }
+    EC.est.df <- do.call(rbind,EC.list) %>%
+      dplyr::mutate(above.max.conc = Estimate > max(outlier.removed.drug.df$concentration_um))
+    assign(paste(toxin,"EC.estimates",sep = "."), EC.est.df)
+  }
+}
+```
+
+## Toxicant Dose-Response Parameter Comparisons
+
+```{r include=FALSE}
+drug.classes <- read.csv("data/drugclasses.csv")
+EC.est.list <- list()
+for(i in 1:length(ls(pattern = "estimate"))){
+  EC.est.list[[i]] <- get(ls(pattern = "estimate")[i])
+}
+EC.est.dat <- do.call(rbind, EC.est.list) %>%
+  dplyr::mutate(fraction = as.factor(fraction),
+                model = as.factor(model),
+                null.estimate = as.factor(is.na(Std..Error)),
+                above.max.conc = as.factor(above.max.conc)) %>%
+  left_join(., drug.classes, by = "drug") %>%
+  dplyr::mutate(drug.class = as.factor(drug.class))
+levels(EC.est.dat$model) <- c("Log-Logistic","Lognormal","Weibull")
+levels(EC.est.dat$null.estimate) <- c("Estimated ECs","NA EC Estimate")
+levels(EC.est.dat$fraction) <- c("EC10","EC50","EC90")
+levels(EC.est.dat$above.max.conc) <- c("EC Estimate Within Dose Range","EC Estimate Exceeds Maximum Dose")
+```
+
+### Fitting Summaries
+
+The process for cleaning data was as follows:
+
+* Restricting analysis to wells with fewer than 30 and greater than 5 worms.
+* Removing wells censored due to irregular exposure conditions.
+* Controlling for systemic variance due to assay and bleach effects by obtaining residuals following regression analysis.
+* Removing dose outlier wells.
+* Subtracting dosed well values from mean bleach- and assay-specific control values.
+
+```{r echo=FALSE, fig.height=6, fig.width=10}
+EC.est.dat %>%
+  dplyr::group_by(null.estimate, fraction, model) %>%
+  dplyr::summarise(n()) %>%
+  ggplot(., mapping = aes(x = model, y = `n()`, fill = model)) + 
+  theme_minimal() + 
+  geom_col(position = "stack") +
+  geom_text(aes(label = `n()`), nudge_y = 2) + 
+  facet_grid(fraction~null.estimate) + 
+  scale_fill_manual(name = "EC Estimate", values = park_palettes$Everglades[c(1,3,5)]) + 
+  labs(x = "Dose-Response Model",
+       y = "Number of Dose-Response Curve Fits")
+
+EC.est.dat %>%
+  dplyr::group_by(above.max.conc, fraction, model) %>%
+  dplyr::summarise(n()) %>%
+  ggplot(., mapping = aes(x = model, y = `n()`, fill = model)) + 
+  theme_minimal() + 
+  geom_col(position = "stack") +
+  geom_text(aes(label = `n()`), nudge_y = 2) + 
+  facet_grid(fraction~above.max.conc) + 
+  scale_fill_manual(name = "EC Estimate", values = park_palettes$Everglades[c(1,3,5)]) + 
+  labs(x = "Dose-Response Model",
+       y = "Number of Dose-Response Curve Fits")
+
+EC.est.dat %>%
+  dplyr::group_by(null.estimate, fraction, model, drug, drug.class) %>%
+  dplyr::summarise(n()) %>%
+  dplyr::mutate(NA.est.drug = if_else(condition = (null.estimate == "NA EC Estimate"), 
+                                            true = drug, 
+                                            false = "")) %>%
+  ggplot(., mapping = aes(x = model, y = `n()`, fill = drug.class)) + 
+  theme_minimal() + 
+  geom_text_repel(aes(label = NA.est.drug), box.padding = 2) +
+  geom_col(position = "stack") +
+  facet_grid(fraction~null.estimate) + 
+  scale_fill_manual(name = "Toxin Category", values = park_palettes$GeneralGrant) + 
+  labs(x = "Dose-Response Model",
+       y = "Number of Dose-Response Curve Fits")
+
+EC.est.dat %>%
+  dplyr::group_by(above.max.conc, fraction, model, drug.class, drug) %>%
+  dplyr::filter(null.estimate != "NA EC Estimate") %>%
+  dplyr::summarise(n()) %>%
+  ggplot(., mapping = aes(x = model, y = `n()`, fill = drug.class)) + 
+  theme_minimal() + 
+  geom_col(position = "stack") +
+  facet_grid(fraction~above.max.conc) + 
+  scale_fill_manual(name = "Toxin Category", values = park_palettes$GeneralGrant) + 
+  labs(x = "Dose-Response Model",
+       y = "Number of Dose-Response Curve Fits")
+```
+
+### EC10
+
+```{r echo=FALSE}
+EC.est.dat %>%
+  dplyr::filter(fraction == "EC10",
+                above.max.conc == "EC Estimate Within Dose Range") %>%
+  dplyr::filter(null.estimate != "NA EC Estimate") %>%
+  dplyr::mutate(Lower = ifelse(Lower < 0, 0.1, Lower)) %>%
+  ggplot(., mapping = aes(x = reorder(drug,Estimate), y = Estimate, fill = drug.class, shape = model)) + 
+  theme_bw() + 
+  geom_pointrange(aes(ymin=Lower, ymax=Upper), size = 0.75, alpha = 0.75) + 
+  # geom_text_repel(aes(label = round(Estimate, 2)), size = 2.5, box.padding = 0.5, colour = "black") + 
+  # facet_grid(model~.) + 
+  scale_y_log10() +
+  theme(axis.text.x = element_text(angle = 45, hjust =1, vjust = 1)) + 
+  scale_shape_manual(name = "Dose-Response Model", values = c(21,22,23)) + 
+  scale_fill_manual(name = "Toxin Category", values = park_palettes$GeneralGrant) + 
+  guides(fill=guide_legend(override.aes=list(shape=21))) + 
+  labs(x = "Toxicant", 
+       y = "EC10 Estimate")
+```
+
+### EC50
+
+```{r echo=FALSE}
+EC.est.dat %>%
+  dplyr::filter(fraction == "EC50",
+                above.max.conc == "EC Estimate Within Dose Range") %>%
+  dplyr::filter(null.estimate != "NA EC Estimate") %>%
+  dplyr::mutate(Lower = ifelse(Lower < 0, 0.1, Lower)) %>%
+  ggplot(., mapping = aes(x = reorder(drug,Estimate), y = Estimate, fill = drug.class, shape = model)) + 
+  theme_bw() + 
+  geom_pointrange(aes(ymin=Lower, ymax=Upper), size = 0.75, alpha = 0.75) + 
+  # geom_text_repel(aes(label = round(Estimate, 2)), size = 2.5, box.padding = 0.5, colour = "black") + 
+  # facet_grid(model~.) + 
+  scale_y_log10() + 
+  theme(axis.text.x = element_text(angle = 45, hjust =1, vjust = 1)) + 
+  scale_shape_manual(name = "Dose-Response Model", values = c(21,22,23)) + 
+  scale_fill_manual(name = "Toxin Category", values = park_palettes$GeneralGrant) + 
+  guides(fill=guide_legend(override.aes=list(shape=21))) + 
+  labs(x = "Toxicant", 
+       y = "EC50 Estimate")
+```
+
+### EC90
+
+```{r echo=FALSE}
+EC.est.dat %>%
+  dplyr::filter(fraction == "EC90",
+                above.max.conc == "EC Estimate Within Dose Range") %>%
+  dplyr::filter(null.estimate != "NA EC Estimate") %>%
+  dplyr::mutate(Lower = ifelse(Lower < 0, 0.1, Lower)) %>%
+  ggplot(., mapping = aes(x = reorder(drug,Estimate), y = Estimate, fill = drug.class, shape = model)) + 
+  theme_bw() + 
+  geom_pointrange(aes(ymin=Lower, ymax=Upper), size = 0.75, alpha = 0.75) + 
+  # geom_text_repel(aes(label = round(Estimate, 2)), size = 2.5, box.padding = 0.5, colour = "black") + 
+  # facet_grid(model~.) + 
+  scale_y_log10() + 
+  theme(axis.text.x = element_text(angle = 45, hjust =1, vjust = 1)) + 
+  scale_shape_manual(name = "Dose-Response Model", values = c(21,22,23)) + 
+  scale_fill_manual(name = "Toxin Category", values = park_palettes$GeneralGrant) + 
+  guides(fill=guide_legend(override.aes=list(shape=21))) + 
+  labs(x = "Toxicant", 
+       y = "EC90 Estimate")
+```
+
+### Summary Tables
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
+options(scipen = 99999)
+nested.summary.tables <- EC.est.dat %>%
+  dplyr::filter(above.max.conc == "EC Estimate Within Dose Range",
+                null.estimate != "NA EC Estimate") %>%
+  dplyr::mutate(estimate = round(Estimate, 2),
+                se = round(Std..Error/2)) %>%
+  dplyr::select(drug, estimate, se, model, fraction) %>%
+  tidyr::unite("EC", c(estimate, se),sep = "±") %>%
+  tidyr::pivot_wider(names_from = model, values_from = EC) %>%
+  dplyr::group_by(fraction) %>%
+  tidyr::nest()
+fancy_print <- function(data,fraction){
+  # EC <- paste("EC",stringr::str_split(fraction, pattern = ":")[[1]][3], sep = "")
+  print(knitr::kable(data,
+                     format = "pandoc",
+                     caption = paste(fraction, "Estimates", sep = " "),
+                     digits = 3))
+  data %>%
+    write.csv(x = ., file = paste("output/",fraction,".csv",sep = ""), row.names = F, quote = F)
+}
+purrr::pmap(.l = list(nested.summary.tables$data,
+                      nested.summary.tables$fraction),
+            .f = fancy_print)
+```
+

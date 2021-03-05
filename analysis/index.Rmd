@@ -1,5 +1,5 @@
 ---
-title: "Home"
+title: "Analyses"
 site: workflowr::wflow_site
 output:
   workflowr::wflow_html:
@@ -8,4 +8,8 @@ editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+This research is part of a three-lab collaboration to understand the genetic basis of natural variation in *C. elegans* toxin responses. The following analyses have been conducted jointly by Tim Crombie and Sam Widmayer.
+
+1.[Preliminary dose-response curves](doseresponsemodels.html) using PD1074 to calibrate assays using more diverse strain sets. 
+2. An overview of [8 strain dose-response curves](toxin8strains.html).
+3. [Broad-sense heritability](heritability.html) describes the amount of variation in a phenotype (in our case, toxin susceptibility) that can be ascribed to genetic differences between strains.

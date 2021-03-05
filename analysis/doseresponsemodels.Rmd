@@ -29,9 +29,7 @@ require(nationalparkcolors)
 require(ggrepel)
 require(RColorBrewer)
 
-ext <- length(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),pattern = "/")[[1]])-1
-setwd(paste(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),
-                               pattern = "/")[[1]][1:ext],collapse = "/"))
+setwd("~/Documents/projects/toxin_dose_responses/")
 
 logticks <- function(datavar,type) {
       minimum <- 1/10^abs(floor(log10(min(datavar, na.rm=TRUE))))

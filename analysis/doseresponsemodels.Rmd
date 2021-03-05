@@ -312,7 +312,7 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
 ##############
 ## TOXIN 01 ##
 ##############
-processed.toxin01A <- easyXpress::readXpress(filedir = "20200130_toxin01A", 
+processed.toxin01A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200130_toxin01A", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200130_toxin01A_data_1602947746SJW.RData") %>% 
   dplyr::filter(model != "MDHD") %>%
@@ -321,7 +321,7 @@ processed.toxin01A <- easyXpress::readXpress(filedir = "20200130_toxin01A",
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
-processed.toxin01B <- easyXpress::readXpress(filedir = "20200131_toxin01B", 
+processed.toxin01B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200131_toxin01B", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200131_toxin01B_data_1602948785SJW.RData") %>%
   dplyr::filter(model != "MDHD") %>%
@@ -335,7 +335,7 @@ processed.toxin01B <- easyXpress::readXpress(filedir = "20200131_toxin01B",
 ##############
 ## TOXIN 02 ##
 ##############
-processed.toxin02A <- easyXpress::readXpress(filedir = "20200206_toxin02A", 
+processed.toxin02A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200206_toxin02A", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200206_toxin02A_data_1602953445SJW.RData") %>% 
   dplyr::filter(model != "MDHD") %>%
@@ -344,7 +344,7 @@ processed.toxin02A <- easyXpress::readXpress(filedir = "20200206_toxin02A",
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
-processed.toxin02B <- easyXpress::readXpress(filedir = "20200207_toxin02B", 
+processed.toxin02B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200207_toxin02B", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200207_toxin02B_data_1602953934SJW.RData") %>% 
   dplyr::filter(model != "MDHD") %>%
@@ -357,7 +357,7 @@ processed.toxin02B <- easyXpress::readXpress(filedir = "20200207_toxin02B",
 ##############
 ## TOXIN 04 ##
 ##############
-processed.toxin04A <- easyXpress::readXpress(filedir = "20200221_toxin04A", 
+processed.toxin04A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200221_toxin04A", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200221_toxin04A_data_1602957415SJW.RData") %>% 
   dplyr::filter(model != "MDHD") %>%
@@ -371,7 +371,7 @@ processed.toxin04A <- easyXpress::readXpress(filedir = "20200221_toxin04A",
 ##############
 ## TOXIN 08 ##
 ##############
-processed.toxin08A <- easyXpress::readXpress(filedir = "20200625_toxin08A", 
+processed.toxin08A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200625_toxin08A", 
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20200625_toxin08A_data_1602969159SJW.RData") %>% 
   dplyr::filter(model != "MDHD") %>%
@@ -380,7 +380,7 @@ processed.toxin08A <- easyXpress::readXpress(filedir = "20200625_toxin08A",
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
-processed.toxin08B <- easyXpress::readXpress(filedir = "20200626_toxin08B", 
+processed.toxin08B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200626_toxin08B", 
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20200626_toxin08B_data_1602969448SJW.RData") %>% 
   dplyr::filter(model != "MDHD") %>%
@@ -395,7 +395,7 @@ processed.toxin08B <- easyXpress::readXpress(filedir = "20200626_toxin08B",
 ###################
 ## TOXIN 01  MDHD##
 ###################
-MDHD.toxin01A <- easyXpress::readXpress(filedir = "20200130_toxin01A", 
+MDHD.toxin01A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200130_toxin01A", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200130_toxin01A_data_1602947746SJW.RData") %>% 
   # dplyr::filter(model != "MDHD") %>%
@@ -404,7 +404,7 @@ MDHD.toxin01A <- easyXpress::readXpress(filedir = "20200130_toxin01A",
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
-MDHD.toxin01B <- easyXpress::readXpress(filedir = "20200131_toxin01B", 
+MDHD.toxin01B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200131_toxin01B", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200131_toxin01B_data_1602948785SJW.RData") %>%
   # dplyr::filter(model != "MDHD") %>%
@@ -417,7 +417,7 @@ MDHD.toxin01B <- easyXpress::readXpress(filedir = "20200131_toxin01B",
 ###################
 ## TOXIN 02 MDHD ##
 ###################
-MDHD.toxin02A <- easyXpress::readXpress(filedir = "20200206_toxin02A", 
+MDHD.toxin02A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200206_toxin02A", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200206_toxin02A_data_1602953445SJW.RData") %>% 
   # dplyr::filter(model != "MDHD") %>%
@@ -426,7 +426,7 @@ MDHD.toxin02A <- easyXpress::readXpress(filedir = "20200206_toxin02A",
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
-MDHD.toxin02B <- easyXpress::readXpress(filedir = "20200207_toxin02B", 
+MDHD.toxin02B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200207_toxin02B", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200207_toxin02B_data_1602953934SJW.RData") %>% 
   # dplyr::filter(model != "MDHD") %>%
@@ -439,7 +439,7 @@ MDHD.toxin02B <- easyXpress::readXpress(filedir = "20200207_toxin02B",
 ###################
 ## TOXIN 04 MDHD ##
 ###################
-MDHD.toxin04A <- easyXpress::readXpress(filedir = "20200221_toxin04A", 
+MDHD.toxin04A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200221_toxin04A", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200221_toxin04A_data_1602957415SJW.RData") %>% 
   # dplyr::filter(model != "MDHD") %>%
@@ -452,7 +452,7 @@ MDHD.toxin04A <- easyXpress::readXpress(filedir = "20200221_toxin04A",
 ###################
 ## TOXIN 08 MDHD ##
 ###################
-MDHD.toxin08A <- easyXpress::readXpress(filedir = "20200625_toxin08A", 
+MDHD.toxin08A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200625_toxin08A", 
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20200625_toxin08A_data_1602969159SJW.RData") %>% 
   # dplyr::filter(model != "MDHD") %>%
@@ -462,7 +462,7 @@ MDHD.toxin08A <- easyXpress::readXpress(filedir = "20200625_toxin08A",
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
-MDHD.toxin08B <- easyXpress::readXpress(filedir = "20200626_toxin08B", 
+MDHD.toxin08B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200626_toxin08B", 
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20200626_toxin08B_data_1602969448SJW.RData") %>% 
   # dplyr::filter(model != "MDHD") %>%

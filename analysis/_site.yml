@@ -1,7 +1,7 @@
-name: "toxin_dose_responses"
+name: toxin_dose_responses
 output_dir: ../docs
 navbar:
-  title: "toxin_dose_responses"
+  title: toxin_dose_responses
   left:
   - text: Home
     href: index.html
@@ -9,6 +9,10 @@ navbar:
     href: about.html
   - text: License
     href: license.html
+  right:
+  - icon: fa-github
+    text: Source code
+    href: https://github.com/AndersenLab/toxin_dose_responses
 output:
   workflowr::wflow_html:
     toc: yes

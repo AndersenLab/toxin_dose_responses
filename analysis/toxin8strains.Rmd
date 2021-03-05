@@ -17,7 +17,6 @@ editor_options:
 ## Analysis Date: `r format(Sys.time(), '%B %d, %Y')`
 
 ```{r include=FALSE}
-setwd("~/Dropbox/HTA_ImageXpress/Projects/") # Set to GitHub Repo Path
 require(tidyverse)
 # devtools::install_github("AndersenLab/easyXpress")
 require(easyXpress)
@@ -27,6 +26,9 @@ require(kableExtra)
 require(ddpcr)
 require(RCurl)
 require(RColorBrewer)
+ext <- length(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),pattern = "/")[[1]])-1
+setwd(paste(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),
+                               pattern = "/")[[1]][1:ext],collapse = "/"))
 # Custom function to find tick vector
 logticks <- function(datavar,type) {
       minimum <- 1/10^abs(floor(log10(min(datavar, na.rm=TRUE))))

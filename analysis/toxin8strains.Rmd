@@ -26,9 +26,8 @@ require(kableExtra)
 require(ddpcr)
 require(RCurl)
 require(RColorBrewer)
-ext <- length(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),pattern = "/")[[1]])-1
-setwd(paste(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),
-                               pattern = "/")[[1]][1:ext],collapse = "/"))
+setwd("~/Documents/projects/toxin_dose_responses/")
+
 # Custom function to find tick vector
 logticks <- function(datavar,type) {
       minimum <- 1/10^abs(floor(log10(min(datavar, na.rm=TRUE))))

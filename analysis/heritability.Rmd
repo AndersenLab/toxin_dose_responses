@@ -19,9 +19,7 @@ require(knitr)
 require(kableExtra)
 require(ddpcr)
 require(nationalparkcolors)
-ext <- length(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),pattern = "/")[[1]])-1
-setwd(paste(stringr::str_split(dirname(rstudioapi::getActiveDocumentContext()$path),
-                               pattern = "/")[[1]][1:ext],collapse = "/"))
+setwd("~/Documents/projects/toxin_dose_responses/")
 H2 <- function(d){
   strain.fit <- lme4::lmer(data = d, formula = value ~ 1 + (1|strain))
   variances <- lme4::VarCorr(x = strain.fit)

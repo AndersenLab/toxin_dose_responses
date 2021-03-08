@@ -1,7 +1,7 @@
-name: toxin_dose_responses
+name: Natural Variation in Toxin Susceptibility
 output_dir: ../docs
 navbar:
-  title: toxin_dose_responses
+  title: Toxin Dose-Responses
   left:
   - text: Home
     href: index.html
@@ -17,5 +17,5 @@ output:
   workflowr::wflow_html:
     toc: yes
     toc_float: yes
-    theme: cosmo
+    theme: sandstone
     highlight: textmate

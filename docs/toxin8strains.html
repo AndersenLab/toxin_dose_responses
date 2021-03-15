@@ -381,7 +381,7 @@ div.tocify {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2021-03-08
+<strong>Last updated:</strong> 2021-03-14
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
@@ -496,22 +496,24 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreea18d5acda545ae1be3eaa27fca0874c81dbab499targetblanka18d5aca"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/a18d5acda545ae1be3eaa27fca0874c81dbab499" target="_blank">a18d5ac</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestree3f4a99bf5a83eb125a3daf3480082a41ed4c1c89targetblank3f4a99ba"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/3f4a99bf5a83eb125a3daf3480082a41ed4c1c89" target="_blank">3f4a99b</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreea18d5acda545ae1be3eaa27fca0874c81dbab499targetblanka18d5aca" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestree3f4a99bf5a83eb125a3daf3480082a41ed4c1c89targetblank3f4a99ba" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/a18d5acda545ae1be3eaa27fca0874c81dbab499" target="_blank">a18d5ac</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/3f4a99bf5a83eb125a3daf3480082a41ed4c1c89" target="_blank">3f4a99b</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
 </p>
 <p>
 Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
     Ignored:    analysis/.DS_Store
 
 Untracked files:
@@ -541,6 +543,7 @@ Untracked files:
     Untracked:  output/Copper(II) chloride_EC50.csv
     Untracked:  output/Copper(II) chloride_EC90.csv
     Untracked:  output/H2.plot.20210306.png
+    Untracked:  output/H2.plot.20210308.png
     Untracked:  output/Lead(II) nitrate_EC10.csv
     Untracked:  output/Methomyl_EC10.csv
     Untracked:  output/Methomyl_EC50.csv
@@ -607,6 +610,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/AndersenLab/toxin_dose_responses/blob/3f4a99bf5a83eb125a3daf3480082a41ed4c1c89/analysis/toxin8strains.Rmd" target="_blank">3f4a99b</a>
+</td>
+<td>
+sam-widmayer
+</td>
+<td>
+2021-03-14
+</td>
+<td>
+integrate toxin22 results
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/AndersenLab/toxin_dose_responses/212e0ae240c321845fe67c04367c3faa1756c765/docs/toxin8strains.html" target="_blank">212e0ae</a>
+</td>
+<td>
+sam-widmayer
+</td>
+<td>
+2021-03-08
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -689,8 +726,8 @@ initiate toxin DRC analysis repo
 <li>Provide dose-response curves for each toxin.</li>
 </ul>
 </div>
-<div id="analysis-date-march-08-2021" class="section level2">
-<h2>Analysis Date: March 08, 2021</h2>
+<div id="analysis-date-march-14-2021" class="section level2">
+<h2>Analysis Date: March 14, 2021</h2>
 </div>
 <div id="assay-summary" class="section level2">
 <h2>Assay Summary</h2>
@@ -835,13 +872,16 @@ sam-widmayer
 24            toxin18A      3 0.3363887         0
 25            toxin19A      1 0.3300594         0
 26            toxin19A      2 0.3203313         0
-27            toxin19A      3 0.3406528         0</code></pre>
+27            toxin19A      3 0.3406528         0
+28            toxin22A      1 0.2672247         0
+29            toxin22A      2 0.3009577         0
+30            toxin22A      3 0.2715390         0</code></pre>
 <pre><code>                         Df Sum Sq Mean Sq F value   Pr(&gt;F)    
-assay                    10 1.0900  0.1090   8.912 7.86e-12 ***
-as.factor(bleach)         2 0.8644  0.4322  35.341 1.16e-13 ***
-strain                    7 0.1209  0.0173   1.412    0.203    
-assay:as.factor(bleach)  14 1.7381  0.1241  10.151  &lt; 2e-16 ***
-Residuals               179 2.1892  0.0122                     
+assay                    11 1.6031  0.1457  12.902  &lt; 2e-16 ***
+as.factor(bleach)         2 0.8067  0.4033  35.708 5.49e-14 ***
+strain                    7 0.1108  0.0158   1.401    0.207    
+assay:as.factor(bleach)  16 1.8032  0.1127   9.977  &lt; 2e-16 ***
+Residuals               200 2.2591  0.0113                     
 ---
 Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
 </div>
@@ -3312,42 +3352,42 @@ Table: Cadmium dichloride Estimates
 
 Strain   Weibull      Log-Logistic   Lognormal  
 -------  -----------  -------------  -----------
-MY16     19.92±2.34   20.57±1.96     20.67±1.83 
-XZ1516   10.33±2.5    12.47±2.92     14.33±4.63 
-PD1074   16.39±1.75   19.05±1.16     19.3±1.08  
-ECA36    20.97±1.64   24.52±1.81     25.01±1.72 
-ECA396   15.99±1.93   18.92±2.04     19.52±2    
-RC301    10.69±1.64   12.36±1.67     12.83±1.69 
-ECA248   16.81±1.52   18.47±1.35     19.26±1.33 
-CB4856   11.05±1.2    12.87±1.17     13.27±1.14 
+MY16     21.9±1.71    24.79±1.81     24.72±1.69 
+XZ1516   21.42±1.67   24.18±1.69     24.62±1.67 
+PD1074   20.31±1.13   23.31±1.2      23.63±1.14 
+ECA36    28.58±1.84   31.54±1.83     32.19±1.88 
+ECA396   25.79±1.83   28.71±1.87     29.01±1.86 
+RC301    23.48±1.9    26.51±2.08     27.03±2.08 
+ECA248   18.32±1.34   21.2±1.43      21.92±1.37 
+CB4856   14.5±1.18    16.96±1.24     17.36±1.22 
 
 
 Table: Cadmium dichloride Estimates
 
 Strain   Weibull      Log-Logistic   Lognormal  
 -------  -----------  -------------  -----------
-MY16     41.49±1.76   40.93±2.13     40.46±2.1  
-XZ1516   46.85±6.1    55.93±16.88    50.2±16.01 
-PD1074   44.15±2.21   44.39±1.66     44.22±1.67 
-ECA36    55.03±2.36   54.13±2.52     53.57±2.39 
-ECA396   54.09±3.89   54.06±5.31     53.56±5.21 
-RC301    43.69±3.6    45.78±5.62     44.27±5.49 
-ECA248   37.6±1.21    37.2±1.4       36.83±1.33 
-CB4856   35.98±1.7    36.37±2.06     35.61±1.96 
+MY16     53.58±2.73   53.24±2.59     53.02±2.6  
+XZ1516   61.76±3      63.13±4.42     62.57±4.52 
+PD1074   55.07±1.82   54.75±2.08     54.26±2.02 
+ECA36    67.83±2.16   67.45±2.81     66.43±2.62 
+ECA396   63.52±2.48   62.65±3.06     62.05±2.91 
+RC301    60.8±2.42    61.14±3.11     60.09±2.94 
+ECA248   49.4±1.85    49.74±2.05     48.73±1.93 
+CB4856   49.74±2.51   51.43±3.51     50.72±3.59 
 
 
 Table: Cadmium dichloride Estimates
 
-Strain   Weibull        Log-Logistic   Lognormal     
--------  -------------  -------------  --------------
-MY16     66.21±4.67     81.46±9.25     79.22±8.77    
-XZ1516   122.8±32.08    NA             175.85±157.81 
-PD1074   83.04±10.75    103.44±9.94    101.36±9.18   
-ECA36    101.77±7.44    119.52±14.24   114.74±12.02  
-ECA396   117.63±14.09   154.43±35.58   146.92±32.59  
-RC301    107.18±14.34   169.53±46.87   152.77±42.7   
-ECA248   62.81±3.46     74.92±7.04     70.43±6.13    
-CB4856   76.33±6.98     102.75±14.5    95.62±12.4    
+Strain   Weibull       Log-Logistic   Lognormal    
+-------  ------------  -------------  -------------
+MY16     94.77±8.81    114.32±13.69   113.7±12.58  
+XZ1516   121.27±9.49   164.8±25.99    159.01±25.41 
+PD1074   104.01±5.98   128.57±12.05   124.59±10.78 
+ECA36    117.65±5.62   144.26±14.26   137.09±12.78 
+ECA396   112.82±6.74   136.69±15.76   132.71±14.19 
+RC301    111.49±7.17   140.98±18.51   133.55±16.22 
+ECA248   92.94±6.55    116.7±12.33    108.34±10.16 
+CB4856   109.1±9.34    155.93±24.55   148.16±23.49 
 
 
 Table: Carbaryl Estimates
@@ -3433,42 +3473,42 @@ Table: Chlorfenapyr Estimates
 
 Strain   Weibull     Log-Logistic   Lognormal 
 -------  ----------  -------------  ----------
-ECA248   0.18±0.01   0.2±0.01       0.2±0.01  
-XZ1516   0.28±0.04   0.3±0.03       0.3±0.03  
-ECA36    0.59±0.06   0.66±0.06      0.65±0.05 
-CB4856   0.33±0.05   0.32±0.04      0.31±0.03 
-ECA396   0.44±0.02   0.49±0.02      0.49±0.01 
-PD1074   0.36±0.02   0.34±0.01      0.33±0.01 
-RC301    0.2±0.01    0.22±0.01      0.22±0.01 
-MY16     0.23±0.02   0.24±0.02      0.24±0.01 
+ECA248   0.19±0.01   0.21±0.01      0.21±0.01 
+XZ1516   0.31±0.02   0.36±0.02      0.36±0.02 
+ECA36    0.9±0.04    1.04±0.07      1.03±0.04 
+CB4856   0.31±0.01   0.32±0.01      0.31±0.01 
+ECA396   0.52±0.01   0.54±0.01      0.55±0.01 
+PD1074   0.36±0.02   0.35±0.01      0.34±0.01 
+RC301    0.23±0.01   0.24±0.01      0.24±0.01 
+MY16     0.23±0.01   0.24±0.01      0.25±0.01 
 
 
 Table: Chlorfenapyr Estimates
 
 Strain   Weibull     Log-Logistic   Lognormal 
 -------  ----------  -------------  ----------
-ECA248   0.47±0.01   0.45±0.02      0.45±0.01 
-XZ1516   0.57±0.02   0.57±0.02      0.57±0.02 
-ECA36    1.22±0.04   1.21±0.04      1.2±0.04  
-CB4856   0.54±0.02   0.53±0.03      0.52±0.03 
-ECA396   0.8±0.02    0.75±0.02      0.75±0.02 
-PD1074   0.58±0.01   0.58±0.01      0.58±0.01 
-RC301    0.44±0.01   0.42±0.01      0.42±0.01 
-MY16     0.51±0.02   0.5±0.02       0.49±0.02 
+ECA248   0.48±0.01   0.47±0.01      0.47±0.01 
+XZ1516   0.65±0.02   0.64±0.01      0.64±0.01 
+ECA36    1.53±0.05   1.38±0.1       1.43±0.05 
+CB4856   0.58±0.01   0.58±0.01      0.57±0.01 
+ECA396   0.83±0.01   0.77±0.02      0.77±0.01 
+PD1074   0.6±0.01    0.61±0.01      0.61±0.01 
+RC301    0.48±0.01   0.47±0.01      0.46±0.01 
+MY16     0.52±0.01   0.51±0.01      0.5±0.01  
 
 
 Table: Chlorfenapyr Estimates
 
 Strain   Weibull     Log-Logistic   Lognormal 
 -------  ----------  -------------  ----------
-ECA248   0.87±0.05   1.05±0.08      1.01±0.07 
-XZ1516   0.89±0.11   1.08±0.12      1.07±0.11 
-ECA36    1.93±0.19   2.21±0.21      2.2±0.18  
-CB4856   0.74±0.05   0.88±0.09      0.88±0.1  
-ECA396   1.16±0.04   1.15±0.07      1.15±0.06 
-PD1074   0.79±0.03   1.01±0.05      1.03±0.04 
-RC301    0.72±0.02   0.83±0.04      0.8±0.04  
-MY16     0.85±0.05   1.04±0.08      1.01±0.07 
+ECA248   0.88±0.03   1.07±0.06      1.04±0.05 
+XZ1516   1.03±0.06   1.12±0.07      1.13±0.06 
+ECA36    2.13±0.14   1.83±0.38      2±0.19    
+CB4856   0.87±0.03   1.06±0.04      1.06±0.04 
+ECA396   1.13±0.03   1.09±0.05      1.1±0.04  
+PD1074   0.82±0.03   1.06±0.04      1.08±0.04 
+RC301    0.78±0.02   0.92±0.03      0.89±0.03 
+MY16     0.86±0.04   1.05±0.06      1.03±0.05 
 
 
 Table: Chlorpyrifos Estimates
@@ -3505,43 +3545,44 @@ ECA36    17.33±3.6    NA             NA
 
 Table: Copper(II) chloride Estimates
 
-Strain   Weibull      Log-Logistic   Lognormal   
--------  -----------  -------------  ------------
-ECA396   38.22±2.85   40.22±2.52     40.99±2.49  
-CB4856   33.35±3.14   35.63±2.77     36.01±2.66  
-ECA36    28.16±3.09   31.09±2.82     31.81±2.75  
-MY16     53.42±4.22   53.06±3.57     52.31±3.1   
-XZ1516   19.81±3.82   26.58±7.63     36.63±25.97 
-RC301    38.33±3.77   41.15±3.21     41.82±3.27  
-PD1074   43.85±3.58   45.28±3.1      46±2.89     
-ECA248   19.1±2       22.47±2.04     23.4±2.11   
+Strain   Weibull      Log-Logistic   Lognormal  
+-------  -----------  -------------  -----------
+ECA396   43.31±3.01   46.5±2.42      47.05±2.24 
+CB4856   64.26±6.9    63.94±5.99     61.77±4.85 
+ECA36    51.2±4.93    52.75±3.94     52.57±3.46 
+MY16     64.44±6.35   64.09±5.63     61.84±4.59 
+XZ1516   41.98±4.77   44.69±3.87     45.09±3.58 
+RC301    44.69±4.56   48.01±3.57     48.66±3.24 
+PD1074   52.12±4.37   52.63±3.67     52.23±3.25 
+ECA248   43.77±4.02   45.9±3.35      46.1±3.18  
 
 
 Table: Copper(II) chloride Estimates
 
-Strain   Weibull        Log-Logistic   Lognormal   
--------  -------------  -------------  ------------
-ECA396   79.69±2.5      79.86±3.53     78.44±3.4   
-CB4856   79.65±3.67     82.38±6.2      81.26±6.67  
-ECA36    76.39±4.57     81.07±8.44     80.26±9.44  
-MY16     89.28±2.17     88.26±2.64     86.9±2.71   
-XZ1516   100.33±34.89   159.91±89.98   NA          
-RC301    88.99±3.44     97.88±8.19     98.69±12.04 
-PD1074   83.46±2.4      82.95±3        81.56±2.89  
-ECA248   73.63±7.11     85.96±14.67    89.53±20.86 
+Strain   Weibull       Log-Logistic   Lognormal    
+-------  ------------  -------------  -------------
+ECA396   96.4±3.41     107.86±8.17    112.47±13.46 
+CB4856   100.72±1.91   102.83±3.58    103.76±4.8   
+ECA36    96.79±2.64    101.93±5.48    102.33±6.99  
+MY16     100.1±1.8     101.69±3.04    102.25±3.98  
+XZ1516   93.45±4.62    103.08±10.75   105.05±15.55 
+RC301    98.18±4.71    110.34±11.96   115.8±20.87  
+PD1074   92.21±2.11    93.37±3        92.3±3.27    
+ECA248   91.68±2.82    97.61±5.78     97.59±7.44   
 
 
 Table: Copper(II) chloride Estimates
 
 Strain   Weibull        Log-Logistic   Lognormal    
 -------  -------------  -------------  -------------
-ECA396   127.28±6.16    158.58±16.06   150.12±14.98 
-CB4856   138.71±10.44   190.46±30.78   183.35±32.24 
-ECA36    144.28±14.97   NA             NA           
-MY16     123.85±4.76    146.81±10.35   144.37±9.75  
-RC301    152.22±12.79   NA             NA           
-PD1074   125.79±5.29    151.96±12.7    144.63±11.24 
-ECA248   173.99±27.81   NA             NA           
+ECA396   160.54±12.06   NA             NA           
+CB4856   134.12±10.06   165.37±23.55   174.3±25.66  
+ECA36    145.25±10.21   196.96±29.38   199.2±33.37  
+MY16     132.54±8.89    161.33±20.16   169.07±21.4  
+XZ1516   155.6±16.47    NA             NA           
+RC301    162.13±17.74   NA             NA           
+PD1074   132.66±6.26    165.63±15.39   163.13±15.03 
+ECA248   146.86±9.92    NA             NA           
 
 
 Table: Lead(II) nitrate Estimates
@@ -3637,81 +3678,85 @@ ECA248   42.44±9.09    106.98±42.97   86.84±33.28
 
 Table: Nickel dichloride Estimates
 
-Strain   Weibull       Log-Logistic   Lognormal     
--------  ------------  -------------  --------------
-ECA396   35.82±2.88    39.29±2.52     40.39±2.38    
-CB4856   38.06±2.14    40.84±1.84     42.02±1.74    
-MY16     31.63±3.53    34.59±3.14     35.29±3.02    
-XZ1516   65.3±512.12   91.07±351.16   75.24±156.01  
-RC301    23.7±4.54     29.85±7.69     34.54±18.21   
-PD1074   39.67±3.31    41.66±2.86     42.16±2.71    
-ECA248   29.67±2.38    32.66±2.28     33.18±2.24    
-ECA36    NA            NA             153.12±162.41 
+Strain   Weibull         Log-Logistic   Lognormal   
+-------  --------------  -------------  ------------
+ECA396   43.91±2.63      45.31±2.23     45.97±2.04  
+CB4856   41.28±2.11      43.07±1.79     43.91±1.67  
+ECA36    54.71±4.68      55.94±3.83     55.63±3.33  
+MY16     38.09±2.56      42.31±2.29     43.58±2.67  
+XZ1516   142.07±274.32   36.59±5.23     42.86±65.12 
+RC301    55.09±5.06      60.64±3.65     64.08±7.95  
+PD1074   57.94±4.61      58.29±3.84     57.29±3.25  
+ECA248   42.57±3.14      43.71±2.68     43.89±2.51  
 
 
 Table: Nickel dichloride Estimates
 
-Strain   Weibull        Log-Logistic   Lognormal     
--------  -------------  -------------  --------------
-ECA396   68.55±3.03     65.45±3.26     65.29±2.94    
-CB4856   72.99±2.01     70.31±2.32     69.75±2.09    
-MY16     82.07±5.01     89.07±10.07    88.41±12.01   
-RC301    100.97±36.28   140.92±82.27   191.65±236.35 
-PD1074   84.23±2.84     86.53±4.58     85.06±4.79    
-ECA248   65.68±3.36     62.58±3.8      62.69±3.42    
+Strain   Weibull        Log-Logistic   Lognormal    
+-------  -------------  -------------  -------------
+ECA396   81.75±1.89     80.3±2.32      79.05±2.18   
+CB4856   79.27±1.7      77.66±2.11     76.49±1.95   
+ECA36    97.84±2.16     101.35±4.08    101.27±4.88  
+MY16     96.63±5.16     113.6±12.18    124.17±22.71 
+RC301    114.83±11.33   134.1±27.95    158±66.08    
+PD1074   97.62±1.74     99.79±2.91     99.64±3.49   
+ECA248   84.16±2.56     84.53±3.7      83.11±3.75   
+XZ1516   NA             111.69±36.87   187.88±773.8 
 
 
 Table: Nickel dichloride Estimates
 
-Strain   Weibull       Log-Logistic   Lognormal    
--------  ------------  -------------  -------------
-ECA396   103.66±6.59   109.03±12.26   105.55±10.09 
-CB4856   110.54±4.23   121.04±8.51    115.79±7.01  
-MY16     150.67±16.6   NA             NA           
-PD1074   136.11±7.77   179.72±21.93   171.61±21.84 
-ECA248   108.97±8.6    119.89±16.95   118.46±14.41 
+Strain   Weibull        Log-Logistic   Lognormal    
+-------  -------------  -------------  -------------
+ECA396   121.48±3.92    142.28±8.7     135.92±7.57  
+CB4856   120.14±3.59    140.01±7.99    133.24±6.89  
+ECA36    141.72±8.55    183.6±22.36    184.36±23.4  
+MY16     174.89±17.38   NA             NA           
+RC301    183.37±36.27   NA             NA           
+PD1074   136.11±6.99    170.82±16.93   173.29±17.33 
+ECA248   129.93±6.08    163.45±15.62   157.39±15.39 
 
 
 Table: Paraquat Estimates
 
 Strain   Weibull      Log-Logistic   Lognormal  
 -------  -----------  -------------  -----------
-MY16     21.04±3.49   29.81±3.67     30.53±3.52 
-XZ1516   22.64±6.38   30.97±7.69     32.71±7.94 
-CB4856   36.82±5.29   43.06±4.58     43.17±4.32 
-RC301    18.65±2.98   24.61±2.98     25.84±2.82 
-PD1074   22.06±2.75   31.67±3.07     32.79±2.91 
-ECA248   14.21±1.95   20.44±2.12     21.34±2.04 
-ECA36    24.14±3.59   34.2±3.87      35.56±3.71 
-ECA396   16±2.29      22.15±2.4      23.41±2.31 
+MY16     21.49±2.2    31.49±2.53     32.89±2.43 
+XZ1516   46.56±5.67   56.97±5.82     58.37±5.55 
+CB4856   27.94±2.8    37.66±2.74     38.24±2.54 
+RC301    15.73±1.83   22.08±1.92     23.33±1.84 
+PD1074   19.37±1.72   27.79±1.9      29.12±1.81 
+ECA248   13.46±1.33   19.33±1.5      20.46±1.46 
+ECA36    23.97±2.44   33.86±2.56     35.13±2.42 
+ECA396   14.16±1.45   20.47±1.56     21.4±1.48  
 
 
 Table: Paraquat Estimates
 
-Strain   Weibull        Log-Logistic    Lognormal     
--------  -------------  --------------  --------------
-MY16     195.72±21.8    189.38±20.77    195.54±21.95  
-XZ1516   376.38±97.98   495.07±211.89   524.09±278.19 
-CB4856   181.21±17.65   175.08±15.77    180.18±16     
-RC301    196.97±21.97   188.17±24.49    187.59±23.09  
-PD1074   237.62±23.93   216.71±23.08    226.89±24.15  
-ECA248   167.58±15.99   157.49±16.14    161.09±16.11  
-ECA36    225.85±26.21   200.17±24.03    208.98±24     
-ECA396   185.66±19.15   162.82±19.49    165.81±18.06  
+Strain   Weibull        Log-Logistic   Lognormal    
+-------  -------------  -------------  -------------
+MY16     247.79±20.27   223.77±19.92   234.06±20.65 
+XZ1516   388.08±35.61   390.27±48.91   390.29±50.58 
+CB4856   219.28±18.97   192.21±14.64   203.73±14.96 
+RC301    190.82±16.68   169.31±16.64   174.07±15.94 
+PD1074   234.72±17.46   210.58±17.45   220.31±17.84 
+ECA248   190.84±14.44   185.4±16.94    188.51±17.08 
+ECA36    229.29±20.19   201.69±17.61   214.1±18.19  
+ECA396   163.12±11.88   141.94±11      147.09±10.57 
 
 
 Table: Paraquat Estimates
 
 Strain   Weibull          Log-Logistic     Lognormal      
 -------  ---------------  ---------------  ---------------
-MY16     810.74±179.24    1202.92±315.02   1252.61±320.8  
-XZ1516   2257.03±934.06   NA               NA             
-CB4856   500.28±93.32     711.8±145.09     751.95±146.25  
-RC301    884.72±166.79    1438.88±396.38   1361.8±346.34  
-PD1074   1080.85±192.09   1482.67±359.1    1569.96±362.65 
-ECA248   807.42±139.09    1213.33±285.5    1216.06±268.78 
-ECA36    938.96±193.44    1171.47±320.24   1228.27±307.56 
-ECA396   885.5±150.85     1196.94±310.29   1174.17±267.38 
+MY16     1177.07±168.78   1590.36±321.63   1665.68±319.5  
+XZ1516   1499.05±216.62   2673.26±665.82   2609.49±663.48 
+CB4856   815.1±128.85     981.14±169.08    1085.4±170.95  
+RC301    936.14±139.24    1298.17±277.65   1298.95±249.99 
+PD1074   1150.8±145.49    1595.89±292.17   1667±286.11    
+ECA248   1034.35±133.48   1778.13±356.19   1737.21±334.18 
+ECA36    966.76±151.63    1201.27±236.27   1304.87±238.47 
+ECA396   774.48±97.75     984.14±171.96    1011.07±156.57 
 
 
 Table: Pyraclostrobin Estimates
@@ -3821,37 +3866,37 @@ ECA248   67.61±6.66    172.04±35.78   161.52±38.98
 
 Table: Zinc dichloride Estimates
 
-Strain   Weibull       Log-Logistic   Lognormal    
--------  ------------  -------------  -------------
-MY16     48.57±3.5     56.71±3.44     60.46±5.29   
-PD1074   70.97±20.51   109.35±45.33   NA           
-ECA36    61.24±5.44    79.38±11.77    121.2±62.97  
-ECA396   38.16±2.41    44.66±2.39     46.35±2.52   
-RC301    44.36±3.97    53.44±4.75     60.2±10.72   
-ECA248   51.85±3.26    68.24±7.92     107.69±58.09 
-XZ1516   NA            55.29±4.08     57.25±4.38   
+Strain   Weibull       Log-Logistic    Lognormal     
+-------  ------------  --------------  --------------
+MY16     49.97±2.99    64.15±5.85      86.83±25.16   
+XZ1516   53.15±3.33    62.9±3.86       68.77±7.46    
+PD1074   66.11±12.42   99.93±26.76     394.91±407.23 
+ECA36    53.45±2.91    66.27±4.86      81.66±16.27   
+ECA396   34.27±1.76    40.29±1.78      41.84±1.96    
+RC301    44.21±2.85    57.02±5.31      75.49±19.46   
+ECA248   51.07±3.11    61.77±4.16      71.18±11.2    
+CB4856   95.8±73.07    179.04±147.83   NA            
 
 
 Table: Zinc dichloride Estimates
 
-Strain   Weibull         Log-Logistic   Lognormal     
--------  --------------  -------------  --------------
-MY16     164.68±10.41    210.27±28.6    253.98±68.93  
-PD1074   347.13±151.17   NA             NA            
-ECA36    228.42±40.02    349.9±105.19   NA            
-ECA396   142.89±7.33     172.1±17.01    185.28±28.05  
-RC301    167.04±17.09    226.8±46.58    318.12±142.48 
-ECA248   205.09±27.2     326.66±86.8    NA            
-XZ1516   NA              190.13±26.07   205.76±45     
+Strain   Weibull        Log-Logistic   Lognormal     
+-------  -------------  -------------  --------------
+MY16     200.37±22.5    301.04±62.22   NA            
+XZ1516   180.45±13.29   233.29±32.84   297.56±86.78  
+PD1074   327.1±95.31    NA             NA            
+ECA36    197.2±18.25    278.34±46.86   NA            
+ECA396   136.22±5.76    166.62±13.56   185.5±24.6    
+RC301    192.15±22.05   289.38±58.28   NA            
+ECA248   181.68±15.06   246.68±40.07   354.12±135.93 
 
 
 Table: Zinc dichloride Estimates
 
 Strain   Weibull        Log-Logistic   Lognormal 
 -------  -------------  -------------  ----------
-MY16     358.56±40.73   NA             NA        
-ECA396   331.44±29.33   NA             NA        
-RC301    388.87±66.7    NA             NA        </code></pre>
+XZ1516   393.24±48.17   NA             NA        
+ECA396   328.27±23.63   NA             NA        </code></pre>
 <pre><code>[[1]]
 NULL
 
@@ -4021,7 +4066,7 @@ other attached packages:
  [1] RColorBrewer_1.1-2 RCurl_1.98-1.2     ddpcr_1.15         kableExtra_1.3.4  
  [5] knitr_1.31         drc_3.0-1          MASS_7.3-53        easyXpress_0.1.0  
  [9] forcats_0.5.1      stringr_1.4.0      dplyr_1.0.4        purrr_0.3.4       
-[13] readr_1.4.0        tidyr_1.1.2        tibble_3.0.6       ggplot2_3.3.3     
+[13] readr_1.4.0        tidyr_1.1.2        tibble_3.1.0       ggplot2_3.3.3     
 [17] tidyverse_1.3.0    workflowr_1.6.2   
 
 loaded via a namespace (and not attached):

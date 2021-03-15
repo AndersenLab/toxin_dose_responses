@@ -381,7 +381,7 @@ div.tocify {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2021-03-08
+<strong>Last updated:</strong> 2021-03-14
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
@@ -496,22 +496,24 @@ relative
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreea18d5acda545ae1be3eaa27fca0874c81dbab499targetblanka18d5aca"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/a18d5acda545ae1be3eaa27fca0874c81dbab499" target="_blank">a18d5ac</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreebdfa65f51b93d19097bdf0c714dc72a6a7223ebdtargetblankbdfa65fa"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/bdfa65f51b93d19097bdf0c714dc72a6a7223ebd" target="_blank">bdfa65f</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreea18d5acda545ae1be3eaa27fca0874c81dbab499targetblanka18d5aca" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreebdfa65f51b93d19097bdf0c714dc72a6a7223ebdtargetblankbdfa65fa" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/a18d5acda545ae1be3eaa27fca0874c81dbab499" target="_blank">a18d5ac</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/bdfa65f51b93d19097bdf0c714dc72a6a7223ebd" target="_blank">bdfa65f</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
 </p>
 <p>
 Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
     Ignored:    analysis/.DS_Store
 
 Untracked files:
@@ -541,6 +543,7 @@ Untracked files:
     Untracked:  output/Copper(II) chloride_EC50.csv
     Untracked:  output/Copper(II) chloride_EC90.csv
     Untracked:  output/H2.plot.20210306.png
+    Untracked:  output/H2.plot.20210308.png
     Untracked:  output/Lead(II) nitrate_EC10.csv
     Untracked:  output/Methomyl_EC10.csv
     Untracked:  output/Methomyl_EC50.csv
@@ -569,6 +572,7 @@ Untracked files:
 
 Unstaged changes:
     Modified:   analysis/doseresponsemodels.Rmd
+    Modified:   analysis/toxin8strains.Rmd
 
 </code></pre>
 <p>
@@ -607,6 +611,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/AndersenLab/toxin_dose_responses/blob/bdfa65f51b93d19097bdf0c714dc72a6a7223ebd/analysis/heritability.Rmd" target="_blank">bdfa65f</a>
+</td>
+<td>
+sam-widmayer
+</td>
+<td>
+2021-03-14
+</td>
+<td>
+integrate toxin22 results
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/AndersenLab/toxin_dose_responses/212e0ae240c321845fe67c04367c3faa1756c765/docs/heritability.html" target="_blank">212e0ae</a>
+</td>
+<td>
+sam-widmayer
+</td>
+<td>
+2021-03-08
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -1483,10 +1521,12 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] ddpcr_1.15       kableExtra_1.3.4 knitr_1.31       drc_3.0-1       
- [5] MASS_7.3-53      easyXpress_0.1.0 forcats_0.5.1    stringr_1.4.0   
- [9] dplyr_1.0.4      purrr_0.3.4      readr_1.4.0      tidyr_1.1.2     
-[13] tibble_3.0.6     ggplot2_3.3.3    tidyverse_1.3.0  workflowr_1.6.2 
+ [1] nationalparkcolors_0.1.0 ddpcr_1.15               kableExtra_1.3.4        
+ [4] knitr_1.31               drc_3.0-1                MASS_7.3-53             
+ [7] easyXpress_0.1.0         forcats_0.5.1            stringr_1.4.0           
+[10] dplyr_1.0.4              purrr_0.3.4              readr_1.4.0             
+[13] tidyr_1.1.2              tibble_3.1.0             ggplot2_3.3.3           
+[16] tidyverse_1.3.0          workflowr_1.6.2         
 
 loaded via a namespace (and not attached):
   [1] minqa_1.2.4           TH.data_1.0-10        colorspace_2.0-0     

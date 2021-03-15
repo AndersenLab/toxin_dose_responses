@@ -26,6 +26,7 @@ require(kableExtra)
 require(ddpcr)
 require(RCurl)
 require(RColorBrewer)
+require(workflowr)
 setwd("~/Documents/projects/toxin_dose_responses/")
 
 # Custom function to find tick vector
@@ -465,6 +466,19 @@ processed.toxin19A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 22 ##
+##############
+processed.toxin22A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210311_toxin22A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210311_toxin22A_data_1615574989SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 ```
 
 ```{r MDHD CP Data, message=FALSE, warning=FALSE, include=FALSE}
@@ -614,6 +628,20 @@ MDHD.toxin18A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 MDHD.toxin19A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210218_toxin19A",
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20210218_toxin19A_data_1614224793SJW.RData") %>% 
+  # dplyr::filter(model != "MDHD") %>%
+  # droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+##############
+## TOXIN 22 ##
+##############
+MDHD.toxin22A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210311_toxin22A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210311_toxin22A_data_1615574989SJW.RData") %>% 
   # dplyr::filter(model != "MDHD") %>%
   # droplevels() %>%
   easyXpress::modelSelection(.) %>%
@@ -956,7 +984,8 @@ all.dat <- processed.toxin09A$summarized_processed %>%
   dplyr::full_join(processed.toxin16A$summarized_processed) %>%
   dplyr::full_join(processed.toxin17A$summarized_processed) %>%
   dplyr::full_join(processed.toxin18A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin19A$summarized_processed)
+  dplyr::full_join(processed.toxin19A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin22A$summarized_processed)
 
 all.dat <- all.dat %>%
   dplyr::mutate(drug = if_else(drug == "copper",

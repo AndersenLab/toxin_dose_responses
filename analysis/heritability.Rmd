@@ -19,6 +19,7 @@ require(knitr)
 require(kableExtra)
 require(ddpcr)
 require(nationalparkcolors)
+require(ggbeeswarm)
 setwd("~/Documents/projects/toxin_dose_responses/")
 H2 <- function(d){
   strain.fit <- lme4::lmer(data = d, formula = value ~ 1 + (1|strain))
@@ -68,7 +69,7 @@ H2.bootstrapping.calc <- function(d, nreps = 500, boot = T){
                         as.numeric(H2.quantiles[2]), 
                         as.numeric(H2.quantiles[21])) %>%
       `colnames<-`(c("H2.Point.Estimate","H2.5.perc","H2.95.perc"))
-    return(H2.CI)
+    return(list(H2.CI,H2.boots.vec))
     
   } else {
     
@@ -123,6 +124,25 @@ H2.bootstrapping.perm <- function(d, nreps = 500, perm = T){
   }
   
 }
+H2.plot <- function(H2.out){
+  H2.ests <- list()
+  for(i in 1:length(H2.out)){H2.ests[i] <- H2.out[[i]][2]}
+  H2.points <- list()
+  for(i in 1:length(H2.out)){H2.points[i] <- H2.out[[i]][1]}
+  
+  H2.df <- do.call(rbind, H2.ests)
+  H2.point.df <- do.call(rbind, H2.points)
+  options(scipen = 9999999)
+  ggplot(H2.df, mapping = aes(x = as.factor(concentration_um), y = round(H2.rep,3))) + 
+    theme_bw() + 
+    geom_violin(draw_quantiles = seq(0,1,0.2), scale = "width") + 
+    geom_quasirandom(alpha = 0.2) + 
+    ylim(c(0,1)) +
+    geom_hline(yintercept = 0.3, linetype = 3) + 
+    labs(title = unique(H2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(H^2))
+}
 remove_outliers <- function(x, na.rm = TRUE, ...) {
     qnt <- stats::quantile(x, probs = c(0.25, 0.75), na.rm = na.rm, 
       ...)
@@ -131,6 +151,296 @@ remove_outliers <- function(x, na.rm = TRUE, ...) {
     y[x < (qnt[1] - H)] <- NA
     y[x > (qnt[2] + H)] <- NA
     y
+}
+clean.data <- function(raw.data){
+  
+  if(length(levels(as.factor(raw.data$Metadata_Experiment))) > 1){
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+    # Regression
+    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ Metadata_Experiment + bleach)
+    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ Metadata_Experiment + bleach)
+    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
+      dplyr::filter(!is.na(median_wormlength_um_reg))
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+    
+  } else {
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+
+    # Regression
+    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ bleach)
+    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ bleach)
+    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
+      dplyr::filter(!is.na(median_wormlength_um_reg))
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+  }
+  return(list(full_df_proc,drug.filtering.summary))
+}
+cleanData <- function(raw.data){
+  
+  if(length(levels(as.factor(raw.data$Metadata_Experiment))) > 1){
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um = remove_outliers(median_wormlength_um)) %>%
+      dplyr::filter(!is.na(median_wormlength_um))
+    
+    # Regression
+    median.reg <- lm(data = outlier.removed.drug.df, formula = median_wormlength_um ~ Metadata_Experiment + bleach)
+    mean.reg <- lm(data = outlier.removed.drug.df, formula = mean_wormlength_um ~ Metadata_Experiment + bleach)
+    outlier.removed.drug.df <- cbind(outlier.removed.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(outlier.removed.drug.df) <- c(colnames(outlier.removed.drug.df)[-c(length(colnames(outlier.removed.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+    
+  } else {
+    
+    # Remove Low n and Censored Wells
+    n.drug.df <- raw.data %>%
+      dplyr::filter(n < 30,
+                    n > 5,
+                    is.na(well_censor))
+    
+
+    # Outlier Removal
+    outlier.removed.drug.df <- n.drug.df %>%
+      dplyr::group_by(concentration_um, strain) %>%
+      # dplyr::group_by(concentration_um) %>%
+      dplyr::mutate(median_wormlength_um = remove_outliers(median_wormlength_um)) %>%
+      dplyr::filter(!is.na(median_wormlength_um))
+    
+    # Regression
+    median.reg <- lm(data = outlier.removed.drug.df, formula = median_wormlength_um ~ bleach)
+    mean.reg <- lm(data = outlier.removed.drug.df, formula = mean_wormlength_um ~ bleach)
+    outlier.removed.drug.df <- cbind(outlier.removed.drug.df, median.reg$residuals, mean.reg$residuals)
+    colnames(outlier.removed.drug.df) <- c(colnames(outlier.removed.drug.df)[-c(length(colnames(outlier.removed.drug.df))-1, length(colnames(n.drug.df)))],
+                           "median_wormlength_um_reg","mean_wormlength_um_reg")
+    
+    # Control Delta
+    if(!0 %in% outlier.removed.drug.df$concentration_um){
+      full_df_proc <-  outlier.removed.drug.df
+    } else {
+      control_values <- outlier.removed.drug.df %>%
+        dplyr::filter(concentration_um == 0) %>% # filter to control wells
+        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
+        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
+        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
+    
+      full_df_proc <-  outlier.removed.drug.df %>%
+        dplyr::ungroup() %>%
+        dplyr::left_join(., control_values) %>% # join control values for each trait
+        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
+    }
+    
+    n.raw <- raw.data %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(raw = n())
+    
+    n.cleaned <- n.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(cleaned = n())
+    
+    n.outlier.removed <- outlier.removed.drug.df %>%
+      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
+      dplyr::summarise(outlier.removed = n())
+    
+    filtering.summary <- n.raw %>%
+      dplyr::full_join(., n.cleaned) %>%
+      dplyr::full_join(., n.outlier.removed)
+    filtering.summary[is.na(filtering.summary)] <- 0
+    
+    drug.filtering.summary <- filtering.summary %>%
+      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
+                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
+                    pct.cleaned = ((raw-cleaned)/raw)*100,
+                    check = pct.retained + pct.outlier + pct.cleaned) %>%
+      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
+  }
+  return(list(full_df_proc,drug.filtering.summary))
+}
+make.reps <- function(x){
+  x$replicate <- seq(1,nrow(x))
+  x %>%
+    dplyr::rename(value = median_wormlength_um_reg)
+}
+drugHeritability <- function(rep.data, concentration_um){
+  
+  no.reps <- rep.data %>%
+    dplyr::group_by(strain) %>%
+    dplyr::summarise(n = n())
+  
+  if(1 %in% no.reps$n){
+    H2.est <- data.frame("NA", "NA", "NA") %>%
+      dplyr::mutate(drug = unique(rep.data$drug),
+                    concentration = concentration_um) %>%
+      `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
+    
+    H2.est
+    
+  } else {
+    H2.est <- suppressMessages(as.data.frame(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T)[[1]])) %>%
+      dplyr::mutate(drug = unique(rep.data$drug),
+                  concentration = concentration_um) %>%
+      `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
+    
+    H2.replicates <- suppressMessages(as.data.frame(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T)[[2]])) %>%
+      dplyr::mutate(drug = unique(rep.data$drug),
+                  concentration = concentration_um) %>%
+      `colnames<-`(c("H2.rep", "drug", "concentration_um"))
+    
+    list(H2.est,H2.replicates)
+  }
 }
 today <- format(Sys.time(), '%Y%m%d')
 ```
@@ -488,290 +798,6 @@ pull.toxin <- function(data, toxin){
                   concentration_um = round(concentration_um, 1))
 }
 traits <- c("median_wormlength_um")
-clean.data <- function(raw.data){
-  
-  if(length(levels(as.factor(raw.data$Metadata_Experiment))) > 1){
-    
-    # Remove Low n and Censored Wells
-    n.drug.df <- raw.data %>%
-      dplyr::filter(n < 30,
-                    n > 5,
-                    is.na(well_censor))
-    
-    # Regression
-    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ Metadata_Experiment + bleach)
-    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ Metadata_Experiment + bleach)
-    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
-    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
-                           "median_wormlength_um_reg","mean_wormlength_um_reg")
-    # Outlier Removal
-    outlier.removed.drug.df <- n.drug.df %>%
-      dplyr::group_by(concentration_um, strain) %>%
-      # dplyr::group_by(concentration_um) %>%
-      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
-      dplyr::filter(!is.na(median_wormlength_um_reg))
-    
-    # Control Delta
-    if(!0 %in% outlier.removed.drug.df$concentration_um){
-      full_df_proc <-  outlier.removed.drug.df
-    } else {
-      control_values <- outlier.removed.drug.df %>%
-        dplyr::filter(concentration_um == 0) %>% # filter to control wells
-        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
-        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
-        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
-    
-      full_df_proc <-  outlier.removed.drug.df %>%
-        dplyr::ungroup() %>%
-        dplyr::left_join(., control_values) %>% # join control values for each trait
-        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
-    }
-    
-    n.raw <- raw.data %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(raw = n())
-    
-    n.cleaned <- n.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(cleaned = n())
-    
-    n.outlier.removed <- outlier.removed.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(outlier.removed = n())
-    
-    filtering.summary <- n.raw %>%
-      dplyr::full_join(., n.cleaned) %>%
-      dplyr::full_join(., n.outlier.removed)
-    filtering.summary[is.na(filtering.summary)] <- 0
-    
-    drug.filtering.summary <- filtering.summary %>%
-      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
-                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
-                    pct.cleaned = ((raw-cleaned)/raw)*100,
-                    check = pct.retained + pct.outlier + pct.cleaned) %>%
-      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
-    
-  } else {
-    
-    # Remove Low n and Censored Wells
-    n.drug.df <- raw.data %>%
-      dplyr::filter(n < 30,
-                    n > 5,
-                    is.na(well_censor))
-    
-
-    # Regression
-    median.reg <- lm(data = n.drug.df, formula = median_wormlength_um ~ bleach)
-    mean.reg <- lm(data = n.drug.df, formula = mean_wormlength_um ~ bleach)
-    n.drug.df <- cbind(n.drug.df, median.reg$residuals, mean.reg$residuals)
-    colnames(n.drug.df) <- c(colnames(n.drug.df)[-c(length(colnames(n.drug.df))-1, length(colnames(n.drug.df)))],
-                           "median_wormlength_um_reg","mean_wormlength_um_reg")
-    # Outlier Removal
-    outlier.removed.drug.df <- n.drug.df %>%
-      dplyr::group_by(concentration_um, strain) %>%
-      # dplyr::group_by(concentration_um) %>%
-      dplyr::mutate(median_wormlength_um_reg = remove_outliers(median_wormlength_um_reg)) %>%
-      dplyr::filter(!is.na(median_wormlength_um_reg))
-    
-    # Control Delta
-    if(!0 %in% outlier.removed.drug.df$concentration_um){
-      full_df_proc <-  outlier.removed.drug.df
-    } else {
-      control_values <- outlier.removed.drug.df %>%
-        dplyr::filter(concentration_um == 0) %>% # filter to control wells
-        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
-        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
-        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
-    
-      full_df_proc <-  outlier.removed.drug.df %>%
-        dplyr::ungroup() %>%
-        dplyr::left_join(., control_values) %>% # join control values for each trait
-        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
-    }
-    
-    n.raw <- raw.data %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(raw = n())
-    
-    n.cleaned <- n.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(cleaned = n())
-    
-    n.outlier.removed <- outlier.removed.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(outlier.removed = n())
-    
-    filtering.summary <- n.raw %>%
-      dplyr::full_join(., n.cleaned) %>%
-      dplyr::full_join(., n.outlier.removed)
-    filtering.summary[is.na(filtering.summary)] <- 0
-    
-    drug.filtering.summary <- filtering.summary %>%
-      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
-                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
-                    pct.cleaned = ((raw-cleaned)/raw)*100,
-                    check = pct.retained + pct.outlier + pct.cleaned) %>%
-      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
-  }
-  return(list(full_df_proc,drug.filtering.summary))
-}
-cleanData <- function(raw.data){
-  
-  if(length(levels(as.factor(raw.data$Metadata_Experiment))) > 1){
-    
-    # Remove Low n and Censored Wells
-    n.drug.df <- raw.data %>%
-      dplyr::filter(n < 30,
-                    n > 5,
-                    is.na(well_censor))
-    
-    # Outlier Removal
-    outlier.removed.drug.df <- n.drug.df %>%
-      dplyr::group_by(concentration_um, strain) %>%
-      # dplyr::group_by(concentration_um) %>%
-      dplyr::mutate(median_wormlength_um = remove_outliers(median_wormlength_um)) %>%
-      dplyr::filter(!is.na(median_wormlength_um))
-    
-    # Regression
-    median.reg <- lm(data = outlier.removed.drug.df, formula = median_wormlength_um ~ Metadata_Experiment + bleach)
-    mean.reg <- lm(data = outlier.removed.drug.df, formula = mean_wormlength_um ~ Metadata_Experiment + bleach)
-    outlier.removed.drug.df <- cbind(outlier.removed.drug.df, median.reg$residuals, mean.reg$residuals)
-    colnames(outlier.removed.drug.df) <- c(colnames(outlier.removed.drug.df)[-c(length(colnames(outlier.removed.drug.df))-1, length(colnames(n.drug.df)))],
-                           "median_wormlength_um_reg","mean_wormlength_um_reg")
-    
-    
-    # Control Delta
-    if(!0 %in% outlier.removed.drug.df$concentration_um){
-      full_df_proc <-  outlier.removed.drug.df
-    } else {
-      control_values <- outlier.removed.drug.df %>%
-        dplyr::filter(concentration_um == 0) %>% # filter to control wells
-        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
-        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
-        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
-    
-      full_df_proc <-  outlier.removed.drug.df %>%
-        dplyr::ungroup() %>%
-        dplyr::left_join(., control_values) %>% # join control values for each trait
-        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
-    }
-    
-    n.raw <- raw.data %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(raw = n())
-    
-    n.cleaned <- n.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(cleaned = n())
-    
-    n.outlier.removed <- outlier.removed.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(outlier.removed = n())
-    
-    filtering.summary <- n.raw %>%
-      dplyr::full_join(., n.cleaned) %>%
-      dplyr::full_join(., n.outlier.removed)
-    filtering.summary[is.na(filtering.summary)] <- 0
-    
-    drug.filtering.summary <- filtering.summary %>%
-      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
-                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
-                    pct.cleaned = ((raw-cleaned)/raw)*100,
-                    check = pct.retained + pct.outlier + pct.cleaned) %>%
-      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
-    
-  } else {
-    
-    # Remove Low n and Censored Wells
-    n.drug.df <- raw.data %>%
-      dplyr::filter(n < 30,
-                    n > 5,
-                    is.na(well_censor))
-    
-
-    # Outlier Removal
-    outlier.removed.drug.df <- n.drug.df %>%
-      dplyr::group_by(concentration_um, strain) %>%
-      # dplyr::group_by(concentration_um) %>%
-      dplyr::mutate(median_wormlength_um = remove_outliers(median_wormlength_um)) %>%
-      dplyr::filter(!is.na(median_wormlength_um))
-    
-    # Regression
-    median.reg <- lm(data = outlier.removed.drug.df, formula = median_wormlength_um ~ bleach)
-    mean.reg <- lm(data = outlier.removed.drug.df, formula = mean_wormlength_um ~ bleach)
-    outlier.removed.drug.df <- cbind(outlier.removed.drug.df, median.reg$residuals, mean.reg$residuals)
-    colnames(outlier.removed.drug.df) <- c(colnames(outlier.removed.drug.df)[-c(length(colnames(outlier.removed.drug.df))-1, length(colnames(n.drug.df)))],
-                           "median_wormlength_um_reg","mean_wormlength_um_reg")
-    
-    # Control Delta
-    if(!0 %in% outlier.removed.drug.df$concentration_um){
-      full_df_proc <-  outlier.removed.drug.df
-    } else {
-      control_values <- outlier.removed.drug.df %>%
-        dplyr::filter(concentration_um == 0) %>% # filter to control wells
-        dplyr::group_by(strain, bleach, Metadata_Experiment) %>%
-        dplyr::mutate(control_pheno = mean(median_wormlength_um_reg)) %>% # get mean control value for each trait and strain
-        dplyr::distinct(control_pheno, bleach, strain, Metadata_Experiment) # make it neat
-    
-      full_df_proc <-  outlier.removed.drug.df %>%
-        dplyr::ungroup() %>%
-        dplyr::left_join(., control_values) %>% # join control values for each trait
-        dplyr::mutate(median_wormlength_um_reg = median_wormlength_um_reg - control_pheno)
-    }
-    
-    n.raw <- raw.data %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(raw = n())
-    
-    n.cleaned <- n.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(cleaned = n())
-    
-    n.outlier.removed <- outlier.removed.drug.df %>%
-      dplyr::group_by(Metadata_Experiment, bleach, drug, strain) %>%
-      dplyr::summarise(outlier.removed = n())
-    
-    filtering.summary <- n.raw %>%
-      dplyr::full_join(., n.cleaned) %>%
-      dplyr::full_join(., n.outlier.removed)
-    filtering.summary[is.na(filtering.summary)] <- 0
-    
-    drug.filtering.summary <- filtering.summary %>%
-      dplyr::mutate(pct.retained = (outlier.removed/raw)*100,
-                    pct.outlier = ((cleaned-outlier.removed)/raw)*100,
-                    pct.cleaned = ((raw-cleaned)/raw)*100,
-                    check = pct.retained + pct.outlier + pct.cleaned) %>%
-      tidyr::pivot_longer(cols = -c(Metadata_Experiment, bleach, drug, strain), names_to = "stat")
-  }
-  return(list(full_df_proc,drug.filtering.summary))
-}
-make.reps <- function(x){
-  x$replicate <- seq(1,nrow(x))
-  x %>%
-    dplyr::rename(value = median_wormlength_um_reg)
-}
-drugHeritability <- function(rep.data, concentration_um){
-  no.reps <- rep.data %>%
-    dplyr::group_by(strain) %>%
-    dplyr::summarise(n = n())
-  
-  if(1 %in% no.reps$n){
-    H2.est <- data.frame("NA", "NA", "NA") %>%
-      dplyr::mutate(drug = unique(rep.data$drug),
-                    concentration = concentration_um) %>%
-      `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
-    
-    H2.est
-    
-  } else {
-    H2.est <- suppressMessages(as.data.frame(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T))) %>%
-      dplyr::mutate(drug = unique(rep.data$drug),
-                  concentration = concentration_um) %>%
-      `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
-    
-    H2.est
-  }
-}
 ```
 
 ```{r processing, echo=FALSE, message=FALSE, warning=FALSE}
@@ -872,17 +898,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 silverH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-silverH2.df <- do.call(rbind, silverH2)
-options(scipen = 9999999)
-ggplot(silverH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(silverH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = silverH2)
 ```
 
 ## Cadmium dichloride
@@ -911,17 +927,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 cadmiumH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-cadmiumH2.df <- do.call(rbind, cadmiumH2)
-options(scipen = 9999999)
-ggplot(cadmiumH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(cadmiumH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = cadmiumH2)
 ```
 
 ## Copper (II) dichloride
@@ -949,17 +955,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 copperH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-copperH2.df <- do.call(rbind, copperH2)
-options(scipen = 9999999)
-ggplot(copperH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(copperH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = copperH2)
 ```
 
 ## Nickel dichloride
@@ -987,17 +983,8 @@ drug.data.nested.reps <- drug.data.nested %>%
 nickelH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-nickelH2.df <- do.call(rbind, nickelH2)
-options(scipen = 9999999)
-ggplot(nickelH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(nickelH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+
+H2.plot(H2.out = nickelH2)
 ```
 
 ## Paraquat
@@ -1026,17 +1013,8 @@ drug.data.nested.reps <- drug.data.nested %>%
 paraquatH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-paraquatH2.df <- do.call(rbind, paraquatH2)
-options(scipen = 9999999)
-ggplot(paraquatH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(paraquatH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = paraquatH2)
+
 ```
 
 ## Zinc dichloride
@@ -1064,17 +1042,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 zincH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-zincH2.df <- do.call(rbind, zincH2)
-options(scipen = 9999999)
-ggplot(zincH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(zincH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = zincH2)
 ```
 
 ## Pyraclostrobin
@@ -1105,17 +1073,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 pyraclostrobinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-pyraclostrobinH2.df <- do.call(rbind, pyraclostrobinH2)
-options(scipen = 9999999)
-ggplot(pyraclostrobinH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(pyraclostrobinH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = pyraclostrobinH2)
 ```
 
 ## Aldicarb
@@ -1144,17 +1102,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 aldicarbH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-aldicarbH2.df <- do.call(rbind, aldicarbH2)
-options(scipen = 9999999)
-ggplot(aldicarbH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(aldicarbH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = aldicarbH2)
 ```
 
 ## Chlorfenapyr
@@ -1185,17 +1133,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 chlorfenapyrH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-chlorfenapyrH2.df <- do.call(rbind, chlorfenapyrH2)
-options(scipen = 9999999)
-ggplot(chlorfenapyrH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(chlorfenapyrH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = chlorfenapyrH2)
 ```
 
 ## Methomyl
@@ -1224,17 +1162,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 methomylH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-methomylH2.df <- do.call(rbind, methomylH2)
-options(scipen = 9999999)
-ggplot(methomylH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(methomylH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = methomylH2)
 ```
 
 ## Methylmercury dichloride
@@ -1263,17 +1191,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 mercuryH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-mercuryH2.df <- do.call(rbind, mercuryH2)
-options(scipen = 9999999)
-ggplot(mercuryH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(mercuryH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = mercuryH2)
 ```
 
 ## Triphenyl phosphate
@@ -1301,17 +1219,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 tppH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-tppH2.df <- do.call(rbind, tppH2)
-options(scipen = 9999999)
-ggplot(tppH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(tppH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = tppH2)
 ```
 
 ## Arsenic trioxide
@@ -1338,22 +1246,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 arsenicH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-arsenicH2.df <- do.call(rbind, arsenicH2) %>%
-  dplyr::filter(H2 != "NA") %>%
-  dplyr::mutate(H2 = as.numeric(H2),
-                lower = as.numeric(lower),
-                upper = as.numeric(upper))
-
-options(scipen = 9999999)
-ggplot(arsenicH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(arsenicH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = arsenicH2)
 ```
 
 ## Carbaryl
@@ -1380,17 +1273,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 carbarylH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-carbarylH2.df <- do.call(rbind, carbarylH2)
-options(scipen = 9999999)
-ggplot(carbarylH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(carbarylH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = carbarylH2)
 ```
 
 ## Carboxin
@@ -1417,17 +1300,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 carboxinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-carboxinH2.df <- do.call(rbind, carboxinH2)
-options(scipen = 9999999)
-ggplot(carboxinH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(carboxinH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = carboxinH2)
 ```
 
 ## Chlorpyrifos
@@ -1456,21 +1329,7 @@ drug.data.nested.reps <- drug.data.nested %>%
 chlorpyrifosH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-chlorpyrifosH2.df <- do.call(rbind, chlorpyrifosH2) %>%
-  dplyr::filter(H2 != "NA") %>%
-  dplyr::mutate(H2 = as.numeric(H2),
-                lower = as.numeric(lower),
-                upper = as.numeric(upper))
-options(scipen = 9999999)
-ggplot(chlorpyrifosH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(chlorpyrifosH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = chlorpyrifosH2)
 ```
 
 ## Lead (II) nitrate
@@ -1498,21 +1357,7 @@ leadH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 
-leadH2.df <- do.call(rbind, leadH2) %>%
-  dplyr::filter(H2 != "NA") %>%
-  dplyr::mutate(H2 = as.numeric(H2),
-                lower = as.numeric(lower),
-                upper = as.numeric(upper))
-options(scipen = 9999999)
-ggplot(leadH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(leadH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = leadH2)
 ```
 
 ## Atrazine
@@ -1539,20 +1384,10 @@ drug.data.nested.reps <- drug.data.nested %>%
 atrazineH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
-atrazineH2.df <- do.call(rbind, atrazineH2)
-options(scipen = 9999999)
-ggplot(atrazineH2.df, mapping = aes(x = as.factor(concentration_um), y = H2)) + 
-  theme_bw() + 
-  geom_pointrange(mapping = aes(ymin = lower, ymax = upper)) + 
-  ylim(c(0,1)) +
-  geom_hline(yintercept = 0.3, linetype = 3) + 
-  # theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  labs(title = unique(atrazineH2.df$drug), 
-       x = "Concentration (µM)",
-       y = bquote(H^2))
+H2.plot(H2.out = atrazineH2)
 ```
 
-```{r Summary, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Summary, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 all.herits <- ls(pattern = "H2.df")
 combined.herits <- list()
 for(i in 1:length(all.herits)){

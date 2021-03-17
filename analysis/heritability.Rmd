@@ -129,9 +129,13 @@ H2.plot <- function(H2.out){
   for(i in 1:length(H2.out)){H2.ests[i] <- H2.out[[i]][2]}
   H2.points <- list()
   for(i in 1:length(H2.out)){H2.points[i] <- H2.out[[i]][1]}
-  
-  H2.df <- do.call(rbind, H2.ests)
-  H2.point.df <- do.call(rbind, H2.points)
+
+  H2.df <- do.call(rbind, H2.ests) %>%
+    dplyr::filter(!is.na(H2.rep)) %>%
+    dplyr::mutate(H2.rep = as.numeric(H2.rep))
+  H2.point.df <- do.call(rbind, H2.points)%>%
+    dplyr::filter(!is.na(H2))%>%
+    dplyr::mutate(H2 = as.numeric(H2))
   options(scipen = 9999999)
   ggplot(H2.df, mapping = aes(x = as.factor(concentration_um), y = round(H2.rep,3))) + 
     theme_bw() + 

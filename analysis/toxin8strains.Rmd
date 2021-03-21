@@ -1120,7 +1120,7 @@ raw.tab.dat.MDHD %>%
   scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
   facet_grid(assay~bleach, drop = TRUE, scales = "free", space = "free") + 
   labs(x = "Strain", y = "Drug", title = "4 Worm Model Measurements, Worm_Length < 50") + 
-  ggsave(path = "filename/4model.heatmap.png", height = 15, width = 15)
+  ggsave(filename = "output/4model.heatmap.png", height = 15, width = 15)
 
 
 

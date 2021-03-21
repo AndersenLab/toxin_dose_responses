@@ -315,31 +315,30 @@ strain.EC50s <- function(drug.drm, drug.df){
 ```
 
 ```{r Three-Model CP Data, message=FALSE, warning=FALSE, include=FALSE}
-
 ##############
 ## TOXIN 09 ##
 ##############
 processed.toxin09A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200711_toxin09A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
 ## TOXIN 10 ##
 ##############
-processed.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A", 
+processed.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -347,12 +346,12 @@ processed.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 processed.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200924_toxin11A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -373,22 +372,22 @@ processed.toxin12A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 processed.toxin14A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201210_toxin14A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 processed.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201211_toxin14B",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 
@@ -397,22 +396,22 @@ processed.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 processed.toxin15A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201217_toxin15A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 processed.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201218_toxin15B",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -420,12 +419,12 @@ processed.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 processed.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210129_toxin16A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -433,12 +432,12 @@ processed.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 processed.toxin17A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210204_toxin17A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>%
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -479,6 +478,19 @@ processed.toxin22A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+##############
+## TOXIN 23 ##
+##############
+processed.toxin23A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210318_toxin23A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210318_toxin23A_data_1616184391SJW.RData") %>% 
+  dplyr::filter(model != "MDHD") %>%
+  droplevels() %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 ```
 
 ```{r MDHD CP Data, message=FALSE, warning=FALSE, include=FALSE}
@@ -486,27 +498,25 @@ processed.toxin22A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 ## TOXIN 09 ##
 ##############
-MDHD.toxin09A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200711_toxin09A", 
+MDHD.toxin09A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200711_toxin09A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
 ## TOXIN 10 ##
 ##############
-MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A", 
+MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -514,12 +524,11 @@ MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200924_toxin11A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -528,9 +537,7 @@ MDHD.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 MDHD.toxin12A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201105_toxin12A",
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20201105_toxin12A_data_1605131334SJW.RData") %>%
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
-  # dplyr::filter(!drug %in% c("Nickel dichloride","Copper(II) chloride","Silver nitrate","Methomyl")) %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>%
@@ -541,22 +548,20 @@ MDHD.toxin12A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin14A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201210_toxin14A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 MDHD.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201211_toxin14B",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 
@@ -565,22 +570,20 @@ MDHD.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin15A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201217_toxin15A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 MDHD.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201218_toxin15B",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -588,12 +591,11 @@ MDHD.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210129_toxin16A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -601,12 +603,11 @@ MDHD.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin17A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210204_toxin17A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -615,8 +616,7 @@ MDHD.toxin17A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 MDHD.toxin18A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210211_toxin18A",
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20210211_toxin18A_data_1613317121SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
@@ -628,8 +628,7 @@ MDHD.toxin18A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 MDHD.toxin19A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210218_toxin19A",
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20210218_toxin19A_data_1614224793SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
@@ -642,8 +641,20 @@ MDHD.toxin19A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 MDHD.toxin22A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210311_toxin22A/",
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20210311_toxin22A_data_1615574989SJW.RData") %>% 
-  # dplyr::filter(model != "MDHD") %>%
-  # droplevels() %>%
+  dplyr::filter(Worm_Length > 50) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+##############
+## TOXIN 23 ##
+##############
+MDHD.toxin23A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210318_toxin23A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210318_toxin23A_data_1616184391SJW.RData") %>% 
+  dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
@@ -973,8 +984,8 @@ data.cleaning.plot <- function(data, title){
 
 ## Assay Summary
 ```{r Assay Diagnostics, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
-# Unfiltered
-all.dat <- processed.toxin09A$summarized_processed %>%
+# 3 Model
+all.3model.dat <- processed.toxin09A$summarized_processed %>%
   dplyr::full_join(processed.toxin10A$summarized_processed) %>%
   dplyr::full_join(processed.toxin11A$summarized_processed) %>%
   dplyr::full_join(processed.toxin14A$summarized_processed) %>%
@@ -985,9 +996,8 @@ all.dat <- processed.toxin09A$summarized_processed %>%
   dplyr::full_join(processed.toxin17A$summarized_processed) %>%
   dplyr::full_join(processed.toxin18A$summarized_processed) %>%
   dplyr::full_join(processed.toxin19A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin22A$summarized_processed)
-
-all.dat <- all.dat %>%
+  dplyr::full_join(processed.toxin22A$summarized_processed) %>%
+  dplyr::full_join(processed.toxin23A$summarized_processed) %>%
   dplyr::mutate(drug = if_else(drug == "copper",
                         true = "Copper(II) chloride",
                         false = drug),
@@ -1007,11 +1017,9 @@ all.dat <- all.dat %>%
                         true = "Silver nitrate",
                         false = drug)) %>%
   dplyr::mutate(drug = as.factor(stringr::str_to_sentence(drug)))
-
-pre.tab <- all.dat %>%
+pre.tab <- all.3model.dat %>%
   dplyr::group_by(drug, strain, Metadata_Experiment) %>%
   tidyr::nest()
-
 tab <- list()
 for(i in 1:length(pre.tab$data)){
   g <- pre.tab$data[[i]] %>%
@@ -1025,22 +1033,7 @@ for(i in 1:length(pre.tab$data)){
 raw.tab.dat <- Reduce(rbind, tab) %>%
   dplyr::select(Metadata_Plate, assay, bleach, drug, strain, dose, n, median_wormlength_um, Metadata_Well)
 
-# Percentage of Expected Wells
-raw.tab.dat %>%
-  dplyr::group_by(bleach, drug, strain, assay) %>%
-  summarise(n = n()) %>%
-  dplyr::mutate(perc.full.assay = n/48) %>%
-  ggplot(., mapping = aes(x = strain, y = drug, fill = perc.full.assay)) + 
-  theme_bw(base_size = 10) + 
-  geom_tile(colour = "black") + 
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-        legend.position = "top", legend.justification = "left") +
-  scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
-  facet_grid(assay~bleach, drop = TRUE, scales = "free", space = "free") + 
-  labs(x = "Strain", y = "Drug", title = "All Wells")
-  
-
-# Percentage of Expected Wells - Filtered
+# Percentage of Expected Wells - 3 Model
 raw.tab.dat %>%
   dplyr::filter(n < 30,
                 n > 5) %>%
@@ -1048,15 +1041,93 @@ raw.tab.dat %>%
   summarise(n = n()) %>%
   dplyr::mutate(perc.full.assay = n/48) %>%
   ggplot(., mapping = aes(x = strain, y = drug, fill = perc.full.assay)) + 
-  theme_bw(base_size = 10) + 
+  theme_dark(base_size = 10) + 
   geom_tile(colour = "black") + 
   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-        legend.position = "top", legend.justification = "left") +
+        legend.position = "top", legend.justification = "left",
+        panel.grid = element_blank(),
+        strip.text.y.right = element_text(angle = 0)) +
   scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
   facet_grid(assay~bleach, drop = TRUE, scales = "free", space = "free") + 
-  labs(x = "Strain", y = "Drug", title = "Wells with 5 > n > 30")
+  labs(x = "Strain", y = "Drug", title = "3 Worm Model Measurements")
 
-control.wells.variance <- raw.tab.dat %>%
+
+
+# 4 Model - Worm_Length Filtered
+all.4model.dat <- MDHD.toxin09A$summarized_processed %>%
+  dplyr::full_join(MDHD.toxin10A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin11A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin14A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin14B$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin15A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin15B$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin16A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin17A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin18A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin19A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin22A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin23A$summarized_processed) %>%
+  dplyr::mutate(drug = if_else(drug == "copper",
+                        true = "Copper(II) chloride",
+                        false = drug),
+                drug = if_else(drug == "zinc", 
+                        true = "Zinc dichloride", 
+                        false = drug),
+                drug = if_else(drug == "methyl_mercury",
+                        true = "Methylmercury dichloride",
+                        false = drug),
+                drug = if_else(drug == "cadmium",
+                        true = "Cadmium dichloride",
+                        false = drug),
+                drug = if_else(drug == "nickel",
+                        true = "Nickel dichloride",
+                        false = drug),
+                drug = if_else(drug == "silver",
+                        true = "Silver nitrate",
+                        false = drug)) %>%
+  dplyr::mutate(drug = as.factor(stringr::str_to_sentence(drug)))
+pre.tab <- all.4model.dat %>%
+  dplyr::group_by(drug, strain, Metadata_Experiment) %>%
+  tidyr::nest()
+tab <- list()
+for(i in 1:length(pre.tab$data)){
+  g <- pre.tab$data[[i]] %>%
+    dplyr::mutate(dose = as.factor(concentration_um),
+                  strain = pre.tab$strain[[i]],
+                  drug = pre.tab$drug[[i]],
+                  assay = pre.tab$Metadata_Experiment[[i]])
+  levels(g$dose) <- c(1:length(levels(g$dose)))
+  tab[[i]] <- g
+}
+raw.tab.dat.MDHD <- Reduce(rbind, tab) %>%
+  dplyr::select(Metadata_Plate, assay, bleach, drug, strain, dose, n, median_wormlength_um, Metadata_Well)
+
+# Percentage of Expected Wells - 4 Model; Worm_Length Filtered
+raw.tab.dat.MDHD %>%
+  dplyr::filter(n < 30,
+                n > 5) %>%
+  dplyr::group_by(bleach, drug, strain, assay) %>%
+  summarise(n = n()) %>%
+  dplyr::mutate(perc.full.assay = n/48) %>%
+  ggplot(., mapping = aes(x = strain, y = drug, fill = perc.full.assay)) + 
+  theme_dark(base_size = 10) + 
+  geom_tile(colour = "black") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+        legend.position = "top", legend.justification = "left",
+        panel.grid = element_blank(),
+        strip.text.y.right = element_text(angle = 0)) +
+  scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
+  facet_grid(assay~bleach, drop = TRUE, scales = "free", space = "free") + 
+  labs(x = "Strain", y = "Drug", title = "4 Worm Model Measurements, Worm_Length < 50")
+
+
+
+
+  
+
+
+
+control.wells.variance <- raw.tab.dat.MDHD %>%
   dplyr::filter(dose == 1) %>%
   dplyr::group_by(assay, bleach, strain) %>%
   dplyr::summarise(mean.n = mean(n),
@@ -1110,9 +1181,9 @@ silver.df <- Reduce(rbind,silver) %>%
   dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  # dplyr::filter(Metadata_Experiment != "toxin10A") %>%
+  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin15A")) %>%
   cleanData(.)
-data.cleaning.plot(silver.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(silver.df[[2]], "Bleach Quality")
 dose.check.plot(silver.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = silver.df[[1]], 
@@ -1136,9 +1207,9 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
   dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(Metadata_Experiment != "toxin09A") %>%
+  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin11A","toxin15A")) %>%
   cleanData(.)
-data.cleaning.plot(cadmium.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(cadmium.df[[2]], "Bleach Quality")
 dose.check.plot(cadmium.df[[1]])
 drug.drm <- suppressMessages(fit_all_models(data = cadmium.df[[1]], 
                                             traits = "median_wormlength_um_reg"))
@@ -1146,19 +1217,6 @@ plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(cadmium.df[[1]]$drug)), 
                   metadata = cadmium.df[[1]])
 
-# cadmium.df <- Reduce(rbind,cadmium) %>%
-#   dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
-#   dplyr::filter(Metadata_Experiment != "toxin09A") %>%
-#   cleanData(.)
-# data.cleaning.plot(cadmium.df[[2]], "Regression -> Outliers")
-# dose.check.plot(cadmium.df[[1]])
-# 
-# 
-# drug.drm <- suppressMessages(fit_all_models(data = cadmium.df[[1]], 
-#                                             traits = "median_wormlength_um_reg"))
-# plot_EC50s_on_DRC(all.model.list = drug.drm,
-#                   toxin = levels(as.factor(cadmium.df[[1]]$drug)), 
-#                   metadata = cadmium.df[[1]])
 
 cadmium.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = cadmium.df[[1]])
@@ -1175,7 +1233,7 @@ copper.df <- Reduce(rbind,copper) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
 
-data.cleaning.plot(copper.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(copper.df[[2]], "Bleach Quality")
 dose.check.plot(copper.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = copper.df[[1]], 
@@ -1196,9 +1254,8 @@ nickel.df <- Reduce(rbind,nickel) %>%
   dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%## from combining 9,10,11
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  # dplyr::filter(Metadata_Experiment != "toxin12A") %>%
   cleanData(.)
-data.cleaning.plot(nickel.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(nickel.df[[2]], "Bleach Quality")
 dose.check.plot(nickel.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = nickel.df[[1]], 
@@ -1221,7 +1278,7 @@ paraquat.df <- Reduce(rbind,paraquat) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin10A","toxin11A")) %>%
   cleanData(.)
-data.cleaning.plot(paraquat.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(paraquat.df[[2]], "Bleach Quality")
 dose.check.plot(paraquat.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = paraquat.df[[1]], 
@@ -1238,7 +1295,7 @@ paraquat.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Zinc
 ```{r Zinc, echo=FALSE, message=FALSE, warning=FALSE}
-zinc <- purrr::map2(CP.data.list, 
+zinc <- purrr::map2(MDHD.data.list, 
                         "zinc",
                         pull.toxin)
 zinc.df <- Reduce(rbind,zinc) %>%
@@ -1247,7 +1304,7 @@ zinc.df <- Reduce(rbind,zinc) %>%
   dplyr::filter(cv.censor != 1) %>%
   # dplyr::filter(Metadata_Experiment == "toxin10A") %>%## from combining 9,10,11
   cleanData(.)
-data.cleaning.plot(zinc.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(zinc.df[[2]], "Bleach Quality")
 dose.check.plot(zinc.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = zinc.df[[1]], 
@@ -1261,7 +1318,7 @@ zinc.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Pyraclostrobin
 ```{r Pyraclostrobin, echo=FALSE, message=FALSE, warning=FALSE}
-pyraclostrobin <- purrr::map2(CP.data.list, 
+pyraclostrobin <- purrr::map2(MDHD.data.list, 
                         "pyraclostrobin",
                         pull.toxin)
 
@@ -1272,7 +1329,7 @@ pyraclostrobin.df <- Reduce(rbind,pyraclostrobin) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(Metadata_Experiment != "toxin11A") %>%
   cleanData(.)
-data.cleaning.plot(pyraclostrobin.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(pyraclostrobin.df[[2]], "Bleach Quality")
 dose.check.plot(pyraclostrobin.df[[1]])
 drug.drm <- suppressMessages(fit_all_models(data = pyraclostrobin.df[[1]], 
                                             traits = "median_wormlength_um_reg"))
@@ -1294,7 +1351,7 @@ aldicarb.df <- Reduce(rbind,aldicarb) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(Metadata_Experiment != "toxin10A") %>%
   cleanData(.)
-data.cleaning.plot(aldicarb.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(aldicarb.df[[2]], "Bleach Quality")
 dose.check.plot(aldicarb.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = aldicarb.df[[1]], 
@@ -1318,7 +1375,7 @@ chlorfenapyr.df <- Reduce(rbind,chlorfenapyr) %>%
   dplyr::filter(cv.censor != 1) %>%## from combining 9,10,11
   dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin10A","toxin11A","toxin12A")) %>% ## from combining 9,10,11
   cleanData(.)
-data.cleaning.plot(chlorfenapyr.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(chlorfenapyr.df[[2]], "Bleach Quality")
 dose.check.plot(chlorfenapyr.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = chlorfenapyr.df[[1]], 
@@ -1342,7 +1399,7 @@ methomyl.df <- Reduce(rbind,methomyl) %>%
   dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% ## from combining 9,10,11
   cleanData(.)
 
-data.cleaning.plot(methomyl.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(methomyl.df[[2]], "Bleach Quality")
 dose.check.plot(methomyl.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = methomyl.df[[1]], 
@@ -1368,7 +1425,7 @@ methyl.mercury.df <- Reduce(rbind,methyl.mercury) %>%
   # dplyr::filter(Metadata_Experiment != "toxin10A") %>%
   cleanData(.)
 
-data.cleaning.plot(methyl.mercury.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(methyl.mercury.df[[2]], "Bleach Quality")
 dose.check.plot(methyl.mercury.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = methyl.mercury.df[[1]], 
@@ -1383,7 +1440,7 @@ methyl.mercury.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Triphenyl phosphate
 ```{r Triphenyl Phosphate, echo=FALSE, message=FALSE, warning=FALSE}
-tpp <- purrr::map2(CP.data.list, 
+tpp <- purrr::map2(MDHD.data.list, 
                    "triphenyl",
                    pull.toxin)
 tpp.df <- Reduce(rbind,tpp) %>%
@@ -1392,7 +1449,7 @@ tpp.df <- Reduce(rbind,tpp) %>%
   dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% ## from combining 9,10,11
   cleanData(.)
 
-data.cleaning.plot(tpp.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(tpp.df[[2]], "Bleach Quality")
 dose.check.plot(tpp.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = tpp.df[[1]], 
@@ -1407,14 +1464,14 @@ tpp.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Arsenic trioxide
 ```{r Arsenic trioxide, echo=FALSE, message=FALSE, warning=FALSE}
-arsenic <- purrr::map2(CP.data.list, 
+arsenic <- purrr::map2(MDHD.data.list, 
                    "Arsenic",
                    pull.toxin)
 arsenic.df <- Reduce(rbind,arsenic) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
-data.cleaning.plot(arsenic.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(arsenic.df[[2]], "Bleach Quality")
 dose.check.plot(arsenic.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = arsenic.df[[1]], 
@@ -1429,14 +1486,14 @@ arsenic.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Carbaryl
 ```{r Carbaryl, echo=FALSE, message=FALSE, warning=FALSE}
-carbaryl <- purrr::map2(CP.data.list, 
+carbaryl <- purrr::map2(MDHD.data.list, 
                    "Carbaryl",
                    pull.toxin)
 carbaryl.df <- Reduce(rbind,carbaryl) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
-data.cleaning.plot(carbaryl.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(carbaryl.df[[2]], "Bleach Quality")
 dose.check.plot(carbaryl.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = carbaryl.df[[1]], 
@@ -1451,14 +1508,14 @@ carbaryl.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Carboxin
 ```{r Carboxin, echo=FALSE, message=FALSE, warning=FALSE}
-carboxin <- purrr::map2(CP.data.list, 
+carboxin <- purrr::map2(MDHD.data.list, 
                    "Carboxin",
                    pull.toxin)
 carboxin.df <- Reduce(rbind,carboxin) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
-data.cleaning.plot(carboxin.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(carboxin.df[[2]], "Bleach Quality")
 dose.check.plot(carboxin.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = carboxin.df[[1]], 
@@ -1473,7 +1530,7 @@ carboxin.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Chlorpyrifos
 ```{r Chlorpyrifos, echo=FALSE, message=FALSE, warning=FALSE}
-chlorpyrifos <- purrr::map2(CP.data.list, 
+chlorpyrifos <- purrr::map2(MDHD.data.list, 
                    "Chlorpyrifos",
                    pull.toxin)
 print("Excluding toxin17A: No Response")
@@ -1483,7 +1540,7 @@ chlorpyrifos.df <- Reduce(rbind,chlorpyrifos) %>%
   dplyr::filter(!Metadata_Experiment %in% c("toxin17A")) %>% 
   cleanData(.)
 
-data.cleaning.plot(chlorpyrifos.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(chlorpyrifos.df[[2]], "Bleach Quality")
 dose.check.plot(chlorpyrifos.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = chlorpyrifos.df[[1]], 
@@ -1498,14 +1555,14 @@ chlorpyrifos.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Lead (II) nitrate
 ```{r Lead (II) nitrate, echo=FALSE, message=FALSE, warning=FALSE}
-lead <- purrr::map2(CP.data.list, 
+lead <- purrr::map2(MDHD.data.list, 
                    "Lead",
                    pull.toxin)
 lead.df <- Reduce(rbind,lead) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
-data.cleaning.plot(lead.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(lead.df[[2]], "Bleach Quality")
 dose.check.plot(lead.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = lead.df[[1]], 
@@ -1520,7 +1577,7 @@ lead.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 
 ## Atrazine
 ```{r Atrazine, echo=FALSE, message=FALSE, warning=FALSE}
-atrazine <- purrr::map2(CP.data.list, 
+atrazine <- purrr::map2(MDHD.data.list, 
                    "Atrazine",
                    pull.toxin)
 
@@ -1530,7 +1587,7 @@ atrazine.df <- Reduce(rbind,atrazine) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!Metadata_Experiment %in% c("toxin16A")) %>% 
   cleanData(.)
-data.cleaning.plot(atrazine.df[[2]], "Outliers -> Regression")
+data.cleaning.plot(atrazine.df[[2]], "Bleach Quality")
 dose.check.plot(atrazine.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = atrazine.df[[1]], 
@@ -1541,6 +1598,145 @@ plot_EC50s_on_DRC(all.model.list = drug.drm,
 
 atrazine.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = atrazine.df[[1]])
+```
+
+## 2,4-D
+```{r 24-D, echo=FALSE, message=FALSE, warning=FALSE}
+x2.4.D <- purrr::map2(MDHD.data.list, 
+                   "2,4-D",
+                   pull.toxin)
+
+x2.4.D.df <- Reduce(rbind,x2.4.D) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+data.cleaning.plot(x2.4.D.df[[2]], "Bleach Quality")
+dose.check.plot(x2.4.D.df[[1]])
+
+drug.drm <- suppressMessages(fit_all_models(data = x2.4.D.df[[1]], 
+                                            traits = "median_wormlength_um_reg"))
+plot_EC50s_on_DRC(all.model.list = drug.drm,
+                  toxin = levels(as.factor(x2.4.D.df[[1]]$drug)), 
+                  metadata = x2.4.D.df[[1]])
+
+x2.4.D.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
+                                    drug.df = x2.4.D.df[[1]])
+```
+
+## Malathion
+```{r malathion, echo=FALSE, message=FALSE, warning=FALSE}
+malathion <- purrr::map2(MDHD.data.list, 
+                   "Malathion",
+                   pull.toxin)
+
+malathion.df <- Reduce(rbind,malathion) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+data.cleaning.plot(malathion.df[[2]], "Bleach Quality")
+dose.check.plot(malathion.df[[1]])
+
+drug.drm <- suppressMessages(fit_all_models(data = malathion.df[[1]], 
+                                            traits = "median_wormlength_um_reg"))
+plot_EC50s_on_DRC(all.model.list = drug.drm,
+                  toxin = levels(as.factor(malathion.df[[1]]$drug)), 
+                  metadata = malathion.df[[1]])
+
+malathion.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
+                                    drug.df = malathion.df[[1]])
+```
+
+## Chlorothalonil
+```{r chlorothalonil, echo=FALSE, message=FALSE, warning=FALSE}
+chlorothalonil <- purrr::map2(MDHD.data.list, 
+                   "Chlorothalonil",
+                   pull.toxin)
+
+chlorothalonil.df <- Reduce(rbind,chlorothalonil) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+data.cleaning.plot(chlorothalonil.df[[2]], "Bleach Quality")
+dose.check.plot(chlorothalonil.df[[1]])
+
+drug.drm <- suppressMessages(fit_all_models(data = chlorothalonil.df[[1]], 
+                                            traits = "median_wormlength_um_reg"))
+plot_EC50s_on_DRC(all.model.list = drug.drm,
+                  toxin = levels(as.factor(chlorothalonil.df[[1]]$drug)), 
+                  metadata = chlorothalonil.df[[1]])
+
+chlorothalonil.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
+                                    drug.df = chlorothalonil.df[[1]])
+```
+
+
+## Deltamethrin
+```{r deltamethrin, echo=FALSE, message=FALSE, warning=FALSE}
+deltamethrin <- purrr::map2(MDHD.data.list, 
+                   "Deltamethrin",
+                   pull.toxin)
+
+deltamethrin.df <- Reduce(rbind,deltamethrin) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+data.cleaning.plot(deltamethrin.df[[2]], "Bleach Quality")
+dose.check.plot(deltamethrin.df[[1]])
+
+drug.drm <- suppressMessages(fit_all_models(data = deltamethrin.df[[1]], 
+                                            traits = "median_wormlength_um_reg"))
+plot_EC50s_on_DRC(all.model.list = drug.drm,
+                  toxin = levels(as.factor(deltamethrin.df[[1]]$drug)), 
+                  metadata = deltamethrin.df[[1]])
+
+deltamethrin.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
+                                    drug.df = deltamethrin.df[[1]])
+```
+
+## Manganese dichloride
+```{r manganese, echo=FALSE, message=FALSE, warning=FALSE}
+manganese <- purrr::map2(MDHD.data.list, 
+                   "Manganese dichloride",
+                   pull.toxin)
+
+manganese.df <- Reduce(rbind,manganese) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+data.cleaning.plot(manganese.df[[2]], "Bleach Quality")
+dose.check.plot(manganese.df[[1]])
+
+drug.drm <- suppressMessages(fit_all_models(data = manganese.df[[1]], 
+                                            traits = "median_wormlength_um_reg"))
+plot_EC50s_on_DRC(all.model.list = drug.drm,
+                  toxin = levels(as.factor(manganese.df[[1]]$drug)), 
+                  metadata = manganese.df[[1]])
+
+manganese.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
+                                    drug.df = manganese.df[[1]])
+```
+
+## Propoxur
+```{r propoxur, echo=FALSE, message=FALSE, warning=FALSE}
+propoxur <- purrr::map2(MDHD.data.list, 
+                   "Propoxur",
+                   pull.toxin)
+
+propoxur.df <- Reduce(rbind,propoxur) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+data.cleaning.plot(propoxur.df[[2]], "Bleach Quality")
+dose.check.plot(propoxur.df[[1]])
+
+drug.drm <- suppressMessages(fit_all_models(data = propoxur.df[[1]], 
+                                            traits = "median_wormlength_um_reg"))
+plot_EC50s_on_DRC(all.model.list = drug.drm,
+                  toxin = levels(as.factor(propoxur.df[[1]]$drug)), 
+                  metadata = propoxur.df[[1]])
+
+propoxur.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
+                                    drug.df = propoxur.df[[1]])
 ```
 
 ## EC Estimates

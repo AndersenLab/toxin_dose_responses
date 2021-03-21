@@ -1049,7 +1049,8 @@ raw.tab.dat %>%
         strip.text.y.right = element_text(angle = 0)) +
   scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
   facet_grid(assay~bleach, drop = TRUE, scales = "free", space = "free") + 
-  labs(x = "Strain", y = "Drug", title = "3 Worm Model Measurements")
+  labs(x = "Strain", y = "Drug", title = "3 Worm Model Measurements")+ 
+  ggsave(path = "output/4model.heatmap.png", height = 15, width = 15)
 
 
 
@@ -1118,7 +1119,8 @@ raw.tab.dat.MDHD %>%
         strip.text.y.right = element_text(angle = 0)) +
   scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
   facet_grid(assay~bleach, drop = TRUE, scales = "free", space = "free") + 
-  labs(x = "Strain", y = "Drug", title = "4 Worm Model Measurements, Worm_Length < 50")
+  labs(x = "Strain", y = "Drug", title = "4 Worm Model Measurements, Worm_Length < 50") + 
+  ggsave(path = "output/4model.heatmap.png", height = 15, width = 15)
 
 
 

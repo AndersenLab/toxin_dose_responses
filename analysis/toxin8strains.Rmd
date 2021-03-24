@@ -1790,7 +1790,7 @@ EC.est.dat %>%
 ```
 
 ### EC10
-```{r EC10 plots fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE}
+```{r EC10 plots, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE}
 EC.est.dat %>%
   dplyr::filter(fraction == "EC10",
                 above.max.conc == "EC Estimate Within Dose Range",

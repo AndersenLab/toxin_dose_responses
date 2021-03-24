@@ -1484,7 +1484,7 @@ H2.plot(H2.out = chlorothalonilH2)
 ```
 
 ## Deltamethrin
-```{r atrazine, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Deltamethrin, echo=FALSE, message=FALSE, warning=FALSE}
 deltamethrin <- purrr::map2(CP.data.list, 
                    "Deltamethrin",
                    pull.toxin)
@@ -1511,7 +1511,7 @@ H2.plot(H2.out = deltamethrinH2)
 ```
 
 ## Manganese dichloride
-```{r atrazine, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Manganese, echo=FALSE, message=FALSE, warning=FALSE}
 manganese <- purrr::map2(CP.data.list, 
                    "Manganese dichloride",
                    pull.toxin)

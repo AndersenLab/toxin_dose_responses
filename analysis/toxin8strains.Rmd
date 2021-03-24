@@ -252,7 +252,7 @@ plot_EC50s_on_DRC <- function(all.model.list, toxin, metadata){
     theme(legend.position = "top") +
     scale_x_log10(breaks = logticks(c(trait_predictions$conc, max(trait_predictions$EC)),"breaks"),
                   labels = logticks(c(trait_predictions$conc, max(trait_predictions$EC)), "labels")) +
-    scale_y_continuous(limits = c(-600,100)) + 
+    scale_y_continuous(limits = c(-750,100)) + 
     labs(y = "Relative Worm Length (µm)",
          x = "Concentration (µM)",
          fill = "Strain",

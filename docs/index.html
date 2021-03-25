@@ -305,7 +305,7 @@ $(document).ready(function () {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2021-03-08
+<strong>Last updated:</strong> 2021-03-24
 </p>
 <p>
 <strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 2 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
@@ -336,35 +336,44 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreef27a40f08c65ffd96a4b7c91640bfa8ffdfe431atargetblankf27a40fa"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/f27a40f08c65ffd96a4b7c91640bfa8ffdfe431a" target="_blank">f27a40f</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestree4e761c36ca2481ce10d5128dd87b1d656b0395eftargetblank4e761c3a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/4e761c36ca2481ce10d5128dd87b1d656b0395ef" target="_blank">4e761c3</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestreef27a40f08c65ffd96a4b7c91640bfa8ffdfe431atargetblankf27a40fa" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcomAndersenLabtoxindoseresponsestree4e761c36ca2481ce10d5128dd87b1d656b0395eftargetblank4e761c3a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
 Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
 </p>
 <p>
-The results in this page were generated with repository version <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/f27a40f08c65ffd96a4b7c91640bfa8ffdfe431a" target="_blank">f27a40f</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+The results in this page were generated with repository version <a href="https://github.com/AndersenLab/toxin_dose_responses/tree/4e761c36ca2481ce10d5128dd87b1d656b0395ef" target="_blank">4e761c3</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
 </p>
 <p>
 Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .DS_Store
+    Ignored:    .Rhistory
     Ignored:    analysis/.DS_Store
+    Ignored:    output/.DS_Store
 
 Untracked files:
+    Untracked:  code/toxin.geno.matrix.sh
     Untracked:  data/drugclasses.csv
+    Untracked:  output/2,4-D_EC10.csv
+    Untracked:  output/3model.heatmap.png
+    Untracked:  output/4model.heatmap.png
     Untracked:  output/Aldicarb_EC10.csv
     Untracked:  output/Aldicarb_EC50.csv
     Untracked:  output/Aldicarb_EC90.csv
     Untracked:  output/Arsenic trioxide_EC10.csv
     Untracked:  output/Atrazine_EC10.csv
     Untracked:  output/Atrazine_EC50.csv
+    Untracked:  output/Atrazine_MDHD.junk.png
     Untracked:  output/Cadmium dichloride_EC10.csv
     Untracked:  output/Cadmium dichloride_EC50.csv
     Untracked:  output/Cadmium dichloride_EC90.csv
+    Untracked:  output/Cadmium dichloride_MDHD.junk.png
     Untracked:  output/Carbaryl_EC10.csv
     Untracked:  output/Carbaryl_EC50.csv
     Untracked:  output/Carbaryl_EC90.csv
@@ -374,14 +383,30 @@ Untracked files:
     Untracked:  output/Chlorfenapyr_EC10.csv
     Untracked:  output/Chlorfenapyr_EC50.csv
     Untracked:  output/Chlorfenapyr_EC90.csv
+    Untracked:  output/Chlorothalonil_EC10.csv
+    Untracked:  output/Chlorothalonil_EC50.csv
+    Untracked:  output/Chlorothalonil_EC90.csv
     Untracked:  output/Chlorpyrifos_EC10.csv
     Untracked:  output/Chlorpyrifos_EC50.csv
     Untracked:  output/Chlorpyrifos_EC90.csv
     Untracked:  output/Copper(II) chloride_EC10.csv
     Untracked:  output/Copper(II) chloride_EC50.csv
     Untracked:  output/Copper(II) chloride_EC90.csv
+    Untracked:  output/Deltamethrin_EC10.csv
+    Untracked:  output/Deltamethrin_EC50.csv
+    Untracked:  output/Deltamethrin_EC90.csv
+    Untracked:  output/EC10.strain.comp.png
+    Untracked:  output/EC10.survey.png
     Untracked:  output/H2.plot.20210306.png
+    Untracked:  output/H2.plot.20210308.png
+    Untracked:  output/H2.plot.20210314.png
     Untracked:  output/Lead(II) nitrate_EC10.csv
+    Untracked:  output/Malathion_EC10.csv
+    Untracked:  output/Malathion_EC50.csv
+    Untracked:  output/Malathion_EC90.csv
+    Untracked:  output/Manganese dichloride_EC10.csv
+    Untracked:  output/Manganese dichloride_EC50.csv
+    Untracked:  output/Manganese dichloride_EC90.csv
     Untracked:  output/Methomyl_EC10.csv
     Untracked:  output/Methomyl_EC50.csv
     Untracked:  output/Methomyl_EC90.csv
@@ -394,18 +419,26 @@ Untracked files:
     Untracked:  output/Paraquat_EC10.csv
     Untracked:  output/Paraquat_EC50.csv
     Untracked:  output/Paraquat_EC90.csv
+    Untracked:  output/Propoxur_EC10.csv
+    Untracked:  output/Propoxur_EC50.csv
+    Untracked:  output/Propoxur_EC90.csv
     Untracked:  output/Pyraclostrobin_EC10.csv
     Untracked:  output/Pyraclostrobin_EC50.csv
     Untracked:  output/Pyraclostrobin_EC90.csv
+    Untracked:  output/Pyraclostrobin_MDHD.junk.png
     Untracked:  output/Silver nitrate_EC10.csv
     Untracked:  output/Silver nitrate_EC50.csv
+    Untracked:  output/Silver nitrate_EC90.csv
     Untracked:  output/Triphenyl phosphate_EC10.csv
     Untracked:  output/Triphenyl phosphate_EC50.csv
     Untracked:  output/Triphenyl phosphate_EC90.csv
+    Untracked:  output/Triphenyl phosphate_MDHD.junk.png
     Untracked:  output/Zinc dichloride_EC10.csv
     Untracked:  output/Zinc dichloride_EC50.csv
     Untracked:  output/Zinc dichloride_EC90.csv
     Untracked:  output/cv.control.wells.csv
+    Untracked:  output/manganese_toxin23_p57.png
+    Untracked:  output/toxicants.8strains.csv
 
 Unstaged changes:
     Modified:   analysis/doseresponsemodels.Rmd
@@ -447,6 +480,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/AndersenLab/toxin_dose_responses/blob/4e761c36ca2481ce10d5128dd87b1d656b0395ef/analysis/index.Rmd" target="_blank">4e761c3</a>
+</td>
+<td>
+sam-widmayer
+</td>
+<td>
+2021-03-24
+</td>
+<td>
+wflow_git_commit(“analysis/index.Rmd”, message = )
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/AndersenLab/toxin_dose_responses/a18d5acda545ae1be3eaa27fca0874c81dbab499/docs/index.html" target="_blank">a18d5ac</a>
+</td>
+<td>
+sam-widmayer
+</td>
+<td>
+2021-03-08
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -558,8 +625,8 @@ Start workflowr project.
 </div>
 <p>This research is part of a three-lab collaboration to understand the genetic basis of natural variation in <em>C. elegans</em> toxin responses. The following analyses have been conducted jointly by Tim Crombie and Sam Widmayer.</p>
 <ol style="list-style-type: decimal">
-<li><p>An overview of <a href="toxin8strains.html">8 strain dose-response curves</a>.</p></li>
-<li><p><a href="heritability.html">Broad-sense heritability</a> describes the amount of variation in a phenotype (in our case, toxin susceptibility) that can be ascribed to genetic differences between strains.</p></li>
+<li><p>An overview of <a href="toxin8strains.html">8 strain dose-response curves</a>. We exposed <em>C. elegans</em> strains with diverse genetic makeups to a suite of toxicants with differing modes of action. There were a variety of responses and, importantly, we observed that strains varied in their susceptibility to each toxicants. We report EC50 estimates for each compound where models could be inferred, and provide brief overviews of data quality for assays conducted using each compound.</p></li>
+<li><p><a href="heritability.html">Heritability</a> describes the variance in a phenotype (in our case, toxicant susceptibility) that can be ascribed to genetic differences between strains. We report estimates of heritability in the broad-sense (variance attributable to genetic background differences) and the narrow-sense (variance attributable to the additive effects of segregating alleles). Each dot in broad-sense heritability plots reflect an individual estimate of heritability wherein phenotype replicates for a given dose, regardless of strain, were sampled with replacement.</p></li>
 </ol>
 
 

@@ -8,7 +8,7 @@ editor_options:
   chunk_output_type: console
 ---
 
-This research is part of a three-lab collaboration to understand the genetic basis of natural variation in *C. elegans* toxin responses. The following analyses have been conducted jointly by Tim Crombie and Sam Widmayer.
+This research is part of a three-lab collaboration to understand the genetic basis of natural variation in *C. elegans* xenobiotic responses. The following analyses have been conducted jointly by Tim Crombie and Sam Widmayer.
 
 1. An overview of [8 strain dose-response curves](toxin8strains.html). We exposed *C. elegans* strains with diverse genetic makeups to a suite of toxicants with differing modes of action. There were a variety of responses and, importantly, we observed that strains varied in their susceptibility to each toxicants. We report EC50 estimates for each compound where models could be inferred, and provide brief overviews of data quality for assays conducted using each compound.
 

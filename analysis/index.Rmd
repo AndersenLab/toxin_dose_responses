@@ -10,6 +10,6 @@ editor_options:
 
 This research is part of a three-lab collaboration to understand the genetic basis of natural variation in *C. elegans* toxin responses. The following analyses have been conducted jointly by Tim Crombie and Sam Widmayer.
 
-1. An overview of [8 strain dose-response curves](toxin8strains.html).
+1. An overview of [8 strain dose-response curves](toxin8strains.html). We exposed *C. elegans* strains with diverse genetic makeups to a suite of toxicants with differing modes of action. There were a variety of responses and, importantly, we observed that strains varied in their susceptibility to each toxicants. We report EC50 estimates for each compound where models could be inferred, and provide brief overviews of data quality for assays conducted using each compound.
 
-2. [Broad-sense heritability](heritability.html) describes the amount of variation in a phenotype (in our case, toxin susceptibility) that can be ascribed to genetic differences between strains.
+2. [Heritability](heritability.html) describes the variance in a phenotype (in our case, toxicant susceptibility) that can be ascribed to genetic differences between strains. We report estimates of heritability in the broad-sense (variance attributable to genetic background differences) and the narrow-sense (variance attributable to the additive effects of segregating alleles). Each dot in broad-sense heritability plots reflect an individual estimate of heritability wherein phenotype replicates for a given dose, regardless of strain, were sampled with replacement.

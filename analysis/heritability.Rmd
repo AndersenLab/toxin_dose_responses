@@ -20,6 +20,9 @@ require(kableExtra)
 require(ddpcr)
 require(nationalparkcolors)
 require(ggbeeswarm)
+require(ggrepel)
+require(sommer)
+require(RColorBrewer)
 setwd("~/Documents/projects/toxin_dose_responses/")
 H2 <- function(d){
   strain.fit <- lme4::lmer(data = d, formula = value ~ 1 + (1|strain))
@@ -30,10 +33,31 @@ H2 <- function(d){
   H2 <- Vg/(Vg+Ve)
   return(H2)
 }
-H2.bootstrapping.calc <- function(d, nreps = 500, boot = T){
+h2 <- function(d){
+  pheno_strains <- unique(d$strain)
+  A <- sommer::A.mat(t(geno_matrix[,colnames(geno_matrix) %in% pheno_strains]))
+  
+  df_y <- d %>%
+    dplyr::arrange(strain) %>%
+    dplyr::select(strain, value) %>%
+    dplyr::mutate(strain = as.character(strain))
+  h2_res <- sommer::mmer(value~1,
+                         random=~vs(strain,Gu=A), 
+                         data=df_y)
+  h2 <- vpredict(h2_res, h2 ~ (V1) / ( V1+V2))[[1]][1]
+  h2_SE <- vpredict(h2_res, h2 ~ (V1) / ( V1+V2))[[2]][1]
+  
+  h2_df <- data.frame(h2) %>%
+    dplyr::mutate(h2.upper = h2 + h2_SE,
+                  h2.lower = h2 - h2_SE)
+  return(h2_df)
+}
+H2.bootstrapping.calc <- function(d, nreps = 100, boot = T){
   
   if(boot == T){
+  # Broad-sense Heritability
     H2.point <- H2(d = d)
+    h2.point <- h2(d = d)
     H2.boots <- list()
     for(i in 1:nreps) {
       
@@ -60,25 +84,31 @@ H2.bootstrapping.calc <- function(d, nreps = 500, boot = T){
         print("Only 1 Strain Sampled in Bootstrap - Skipping")
         next
       }
+      # Broad-Sense Heritability
       H2.est <- H2(d = boot)
       H2.boots[i] <- H2.est
     }
+    
     H2.boots.vec <- unlist(H2.boots)
     H2.quantiles <- c(quantile(H2.boots.vec, probs = seq(0,1,0.05)))
     H2.CI <- data.frame(H2.point, 
                         as.numeric(H2.quantiles[2]), 
                         as.numeric(H2.quantiles[21])) %>%
       `colnames<-`(c("H2.Point.Estimate","H2.5.perc","H2.95.perc"))
-    return(list(H2.CI,H2.boots.vec))
+    
+  
+  
+    return(list(H2.CI,H2.boots.vec,h2.point))
     
   } else {
     
     H2.point <- H2(d = d)
+    h2.point <- h2(d = d)
     H2.CI <- data.frame(H2.point, 
                         NA, 
                         NA) %>%
       `colnames<-`(c("H2.Point.Estimate","H2.5.perc","H2.95.perc"))
-    return(H2.CI)
+    return(H2.CI, h2.point)
   }
   
 }
@@ -129,23 +159,80 @@ H2.plot <- function(H2.out){
   for(i in 1:length(H2.out)){H2.ests[i] <- H2.out[[i]][2]}
   H2.points <- list()
   for(i in 1:length(H2.out)){H2.points[i] <- H2.out[[i]][1]}
+  h2.points <- list()
+  for(i in 1:length(H2.out)){h2.points[i] <- H2.out[[i]][3]}
 
   H2.df <- do.call(rbind, H2.ests) %>%
-    dplyr::filter(!is.na(H2.rep)) %>%
+    dplyr::filter(H2.rep != "NA") %>%
     dplyr::mutate(H2.rep = as.numeric(H2.rep))
-  H2.point.df <- do.call(rbind, H2.points)%>%
-    dplyr::filter(!is.na(H2))%>%
+  H2.point.df <- do.call(rbind, H2.points) %>%
+    dplyr::filter(H2 != "NA") %>%
     dplyr::mutate(H2 = as.numeric(H2))
+  h2.point.df <- do.call(rbind, h2.points) %>%
+    dplyr::filter(h2 != "NA") %>%
+    dplyr::mutate(h2 = as.numeric(h2))
   options(scipen = 9999999)
-  ggplot(H2.df, mapping = aes(x = as.factor(concentration_um), y = round(H2.rep,3))) + 
+  
+  H2.df$concentration_um <- as.numeric(as.character(H2.df$concentration_um))
+  H2.point.df$concentration_um <- as.numeric(as.character(H2.point.df$concentration_um))
+  h2.point.df$concentration_um <- as.numeric(as.character(h2.point.df$concentration_um))
+  
+  BS <- ggplot() + 
     theme_bw() + 
-    geom_violin(draw_quantiles = seq(0,1,0.2), scale = "width") + 
-    geom_quasirandom(alpha = 0.2) + 
+    geom_violin(data = H2.df, mapping = aes(x = as.factor(concentration_um), y = H2.rep), draw_quantiles = seq(0,1,0.25), scale = "width") + 
+    geom_quasirandom(data = H2.df, mapping = aes(x = as.factor(concentration_um), y = H2.rep), alpha = 0.2) + 
+    geom_point(data = H2.point.df, mapping = aes(x = as.factor(concentration_um), y = H2), shape = 21, size = 3, fill = "darkred") +
+    geom_label(data = H2.point.df, aes(x = as.factor(concentration_um), y = H2, label = round(H2,2)), 
+               nudge_x = 0.0, nudge_y = 0.05, fill = "black", colour = "white") + 
     ylim(c(0,1)) +
     geom_hline(yintercept = 0.3, linetype = 3) + 
     labs(title = unique(H2.df$drug), 
        x = "Concentration (µM)",
        y = bquote(H^2))
+  
+  NS <- ggplot() + 
+    theme_bw() + 
+    geom_pointrange(data = h2.point.df, mapping = aes(x = as.factor(concentration_um), y = h2, ymax = as.numeric(upper), ymin = as.numeric(lower))) + 
+    geom_label(data = h2.point.df, aes(x = as.factor(concentration_um), y = h2, label = round(h2,2)), 
+               nudge_x = 0.0, nudge_y = 0.05, fill = "black", colour = "white") + 
+    ylim(c(0,1)) +
+    geom_hline(yintercept = 0.3, linetype = 3) + 
+    labs(title = unique(H2.df$drug), 
+       x = "Concentration (µM)",
+       y = bquote(h^2))
+  
+  h_h <- H2.df %>%
+    dplyr::group_by(concentration_um) %>%
+    dplyr::summarise(mean.H2 = mean(H2.rep),
+                     sd.H2 = sd(H2.rep)) %>%
+    dplyr::full_join(h2.point.df) %>%
+    dplyr::mutate(upper.H2 = mean.H2 + sd.H2,
+                  lower.H2 = mean.H2 - sd.H2,
+                  upper = as.numeric(upper),
+                  lower = as.numeric(lower)) %>%
+    dplyr::mutate(upper.H2 = if_else(upper.H2 > 1, true = 1, false = upper.H2),
+                  lower.H2 = if_else(lower.H2 < 0, true = 0, false = lower.H2),
+                  upper = if_else(upper > 1, true = 1, false = upper),
+                  lower = if_else(lower < 0, true = 0, false = lower))
+  
+  h_h_plot <- ggplot(data = h_h, mapping = aes(x = mean.H2, y = h2, fill = log(concentration_um))) + 
+    theme_bw() + 
+    geom_errorbar(aes(ymin = upper, ymax = lower)) + 
+    geom_errorbarh(aes(xmin = lower.H2,xmax = upper.H2)) + 
+    geom_point(size = 3, shape = 21) +
+    ylim(c(0,1)) + 
+    xlim(c(0,1)) + 
+    geom_abline(slope = 1, linetype = 3, colour = "grey50") + 
+    scale_fill_distiller(palette = "PuOr", name = "Concentration (log(µM))") +
+    labs(title = unique(h_h$drug), 
+         x = bquote(H^2),
+         y = bquote(h^2)) + 
+    theme(axis.title.y = element_text(angle = 0, vjust = 0.5))
+  
+  print(BS)
+  print(NS)
+  print(h_h_plot)
+    
 }
 remove_outliers <- function(x, na.rm = TRUE, ...) {
     qnt <- stats::quantile(x, probs = c(0.25, 0.75), na.rm = na.rm, 
@@ -420,6 +507,7 @@ make.reps <- function(x){
 }
 drugHeritability <- function(rep.data, concentration_um){
   
+  # Broad-sense Heritability
   no.reps <- rep.data %>%
     dplyr::group_by(strain) %>%
     dplyr::summarise(n = n())
@@ -430,26 +518,39 @@ drugHeritability <- function(rep.data, concentration_um){
                     concentration = concentration_um) %>%
       `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
     
+    h2.est <- data.frame("NA", "NA", "NA") %>%
+      dplyr::mutate(drug = unique(rep.data$drug),
+                  concentration = concentration_um) %>%
+      `colnames<-`(c("h2", "upper", "lower", "drug", "concentration_um"))
+    
     H2.est
     
   } else {
-    H2.est <- suppressMessages(as.data.frame(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T)[[1]])) %>%
+    
+    herits <- suppressMessages(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T))
+    
+    H2.est <- as.data.frame(herits[[1]]) %>%
       dplyr::mutate(drug = unique(rep.data$drug),
                   concentration = concentration_um) %>%
       `colnames<-`(c("H2", "lower", "upper", "drug", "concentration_um"))
     
-    H2.replicates <- suppressMessages(as.data.frame(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T)[[2]])) %>%
+    H2.replicates <- as.data.frame(herits[[2]]) %>%
       dplyr::mutate(drug = unique(rep.data$drug),
                   concentration = concentration_um) %>%
       `colnames<-`(c("H2.rep", "drug", "concentration_um"))
     
-    list(H2.est,H2.replicates)
+    h2.est <- as.data.frame(herits[[3]]) %>%
+      dplyr::mutate(drug = unique(rep.data$drug),
+                  concentration = concentration_um) %>%
+      `colnames<-`(c("h2", "upper", "lower", "drug", "concentration_um"))
+    
+    list(H2.est,H2.replicates,h2.est)
   }
 }
 today <- format(Sys.time(), '%Y%m%d')
 ```
 
-```{r Three-Model CP Data, message=FALSE, warning=FALSE, include=FALSE}
+```{r Three-Model CP Data, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 ##############
 ## TOXIN 09 ##
 ##############
@@ -800,7 +901,7 @@ MDHD.toxin23A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ```
 
 ```{r message=TRUE, warning=FALSE, include=FALSE}
-CP.data.list <- as.list(ls(pattern = "processed"))
+# CP.data.list <- as.list(ls(pattern = "processed"))
 MDHD.data.list <- as.list(ls(pattern = "MDHD"))
 pull.toxin <- function(data, toxin){
   assay <- get(data)
@@ -1034,7 +1135,7 @@ H2.plot(H2.out = paraquatH2)
 
 ## Zinc dichloride
 ```{r zinc, echo=FALSE, message=FALSE, warning=FALSE}
-zinc <- purrr::map2(CP.data.list, 
+zinc <- purrr::map2(MDHD.data.list, 
                         "zinc",
                         pull.toxin)
 zinc.df <- Reduce(rbind,zinc) %>%
@@ -1062,7 +1163,7 @@ H2.plot(H2.out = zincH2)
 
 ## Pyraclostrobin
 ```{r pyraclostrobin, echo=FALSE, message=FALSE, warning=FALSE}
-pyraclostrobin <- purrr::map2(CP.data.list, 
+pyraclostrobin <- purrr::map2(MDHD.data.list, 
                         "pyraclostrobin",
                         pull.toxin)
 
@@ -1089,6 +1190,8 @@ pyraclostrobinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = pyraclostrobinH2)
+
+
 ```
 
 ## Aldicarb
@@ -1211,7 +1314,7 @@ H2.plot(H2.out = mercuryH2)
 
 ## Triphenyl phosphate
 ```{r tpp, echo=FALSE, message=FALSE, warning=FALSE}
-tpp <- purrr::map2(CP.data.list, 
+tpp <- purrr::map2(MDHD.data.list, 
                    "triphenyl",
                    pull.toxin)
 tpp.df <- Reduce(rbind,tpp) %>%
@@ -1239,7 +1342,7 @@ H2.plot(H2.out = tppH2)
 
 ## Arsenic trioxide
 ```{r arsenic, echo=FALSE, message=FALSE, warning=FALSE}
-arsenic <- purrr::map2(CP.data.list, 
+arsenic <- purrr::map2(MDHD.data.list, 
                    "Arsenic",
                    pull.toxin)
 arsenic.df <- Reduce(rbind,arsenic) %>%
@@ -1266,7 +1369,7 @@ H2.plot(H2.out = arsenicH2)
 
 ## Carbaryl
 ```{r carbaryl, echo=FALSE, message=FALSE, warning=FALSE}
-carbaryl <- purrr::map2(CP.data.list, 
+carbaryl <- purrr::map2(MDHD.data.list, 
                    "Carbaryl",
                    pull.toxin)
 carbaryl.df <- Reduce(rbind,carbaryl) %>%
@@ -1293,7 +1396,7 @@ H2.plot(H2.out = carbarylH2)
 
 ## Carboxin
 ```{r carboxin, echo=FALSE, message=FALSE, warning=FALSE}
-carboxin <- purrr::map2(CP.data.list, 
+carboxin <- purrr::map2(MDHD.data.list, 
                    "Carboxin",
                    pull.toxin)
 carboxin.df <- Reduce(rbind,carboxin) %>%
@@ -1320,7 +1423,7 @@ H2.plot(H2.out = carboxinH2)
 
 ## Chlorpyrifos
 ```{r chlorpyrifos, echo=FALSE, message=FALSE, warning=FALSE}
-chlorpyrifos <- purrr::map2(CP.data.list, 
+chlorpyrifos <- purrr::map2(MDHD.data.list, 
                    "Chlorpyrifos",
                    pull.toxin)
 print("Excluding toxin17A: No Response")
@@ -1349,7 +1452,7 @@ H2.plot(H2.out = chlorpyrifosH2)
 
 ## Lead (II) nitrate
 ```{r lead, echo=FALSE, message=FALSE, warning=FALSE}
-lead <- purrr::map2(CP.data.list, 
+lead <- purrr::map2(MDHD.data.list, 
                    "Lead",
                    pull.toxin)
 lead.df <- Reduce(rbind,lead) %>%
@@ -1377,7 +1480,7 @@ H2.plot(H2.out = leadH2)
 
 ## Atrazine
 ```{r atrazine, echo=FALSE, message=FALSE, warning=FALSE}
-atrazine <- purrr::map2(CP.data.list, 
+atrazine <- purrr::map2(MDHD.data.list, 
                    "Atrazine",
                    pull.toxin)
 atrazine.df <- Reduce(rbind,atrazine) %>%
@@ -1404,7 +1507,7 @@ H2.plot(H2.out = atrazineH2)
 
 ## 2,4-D
 ```{r x24D, echo=FALSE, message=FALSE, warning=FALSE}
-x2.4.D <- purrr::map2(CP.data.list, 
+x2.4.D <- purrr::map2(MDHD.data.list, 
                    "2,4-D",
                    pull.toxin)
 x2.4.D.df <- Reduce(rbind,x2.4.D) %>%
@@ -1431,7 +1534,7 @@ H2.plot(H2.out = x2.4.DH2)
 
 ## Malathion
 ```{r malathion, echo=FALSE, message=FALSE, warning=FALSE}
-malathion <- purrr::map2(CP.data.list, 
+malathion <- purrr::map2(MDHD.data.list, 
                    "Malathion",
                    pull.toxin)
 malathion.df <- Reduce(rbind,malathion) %>%
@@ -1458,7 +1561,7 @@ H2.plot(H2.out = malathionH2)
 
 ## Chlorothalonil
 ```{r Chlorothalonil, echo=FALSE, message=FALSE, warning=FALSE}
-chlorothalonil <- purrr::map2(CP.data.list, 
+chlorothalonil <- purrr::map2(MDHD.data.list, 
                    "Chlorothalonil",
                    pull.toxin)
 chlorothalonil.df <- Reduce(rbind,chlorothalonil) %>%
@@ -1485,7 +1588,7 @@ H2.plot(H2.out = chlorothalonilH2)
 
 ## Deltamethrin
 ```{r Deltamethrin, echo=FALSE, message=FALSE, warning=FALSE}
-deltamethrin <- purrr::map2(CP.data.list, 
+deltamethrin <- purrr::map2(MDHD.data.list, 
                    "Deltamethrin",
                    pull.toxin)
 deltamethrin.df <- Reduce(rbind,deltamethrin) %>%
@@ -1512,7 +1615,7 @@ H2.plot(H2.out = deltamethrinH2)
 
 ## Manganese dichloride
 ```{r Manganese, echo=FALSE, message=FALSE, warning=FALSE}
-manganese <- purrr::map2(CP.data.list, 
+manganese <- purrr::map2(MDHD.data.list, 
                    "Manganese dichloride",
                    pull.toxin)
 manganese.df <- Reduce(rbind,manganese) %>%
@@ -1539,7 +1642,7 @@ H2.plot(H2.out = manganeseH2)
 
 ## Propoxur
 ```{r propoxur, echo=FALSE, message=FALSE, warning=FALSE}
-propoxur <- purrr::map2(CP.data.list, 
+propoxur <- purrr::map2(MDHD.data.list, 
                    "Propoxur",
                    pull.toxin)
 propoxur.df <- Reduce(rbind,propoxur) %>%
@@ -1586,3 +1689,49 @@ ggsave(paste0("output/H2.plot.",today,".png"), width = 8, height = 5)
 
 ```
 
+```{r}
+df_h <- drug.data.nested.reps$data[[8]] %>% ## find some way to integrate dosage and drug information, maybe keep purrr
+  dplyr::select(strain, value, replicate)
+geno_matrix <- data.table::fread("data/toxin_8strain_genotype_matrix.tsv") %>%
+  as.data.frame() %>%
+  dplyr::rename(ECA248 = CB4855, PD1074 = N2)
+
+narrowh2 <- function(df_h, geno_matrix){
+
+  
+  # Narrow-sense Heritability
+  pheno_strains <- unique(df_h$strain)
+  
+  A <- sommer::A.mat(t(geno_matrix[,colnames(geno_matrix) %in% pheno_strains]))
+  
+  df_h2 <- data.frame(trait = NA, h2 = NA, h2_SE = NA)
+  
+  # trait <- colnames(df_h)[i+1]
+  df_y <- df_h %>%
+    #dplyr::filter(strain != "ECA393") %>%  ### no geno infor
+    dplyr::arrange(strain) %>%
+    dplyr::select(strain, value) %>%
+    dplyr::mutate(strain = as.character(strain))
+    
+  h2_res <- sommer::mmer(value~1, 
+                         random=~vs(strain,Gu=A), 
+                         data=df_y)
+  
+  
+  h2 <- vpredict(h2_res, h2 ~ (V1) / ( V1+V2))[[1]][1]
+  # h2 <- as.numeric(pin(h2_res, h2 ~ (V1) / (V1+V2))[[1]][1])
+  
+  h2_SE <- vpredict(h2_res, h2 ~ (V1) / ( V1+V2))[[2]][1]
+  # h2_SE <- pin(h2_res, h2 ~ (V1) / (V1+V2))[[2]]
+  
+  h2_combine = c(trait, h2, h2_SE) ## make trait drug and dose information
+  
+  df_h2 <- rbind(df_h2, h2_combine) %>%
+      na.omit() %>%
+      dplyr::arrange(desc(h2))
+  
+  return(df_h2)
+  
+}
+
+```

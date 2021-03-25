@@ -548,6 +548,9 @@ drugHeritability <- function(rep.data, concentration_um){
   }
 }
 today <- format(Sys.time(), '%Y%m%d')
+geno_matrix <- data.table::fread("data/toxin_8strain_genotype_matrix.tsv") %>%
+  as.data.frame() %>%
+  dplyr::rename(ECA248 = CB4855, PD1074 = N2)
 ```
 
 ```{r Three-Model CP Data, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
@@ -1686,52 +1689,4 @@ ggplot(H2.summary, mapping = aes(x = as.factor(concentration_um), y = H2)) +
        x = "Concentration (uM)",
        y = bquote(H^2))
 ggsave(paste0("output/H2.plot.",today,".png"), width = 8, height = 5)
-
-```
-
-```{r}
-df_h <- drug.data.nested.reps$data[[8]] %>% ## find some way to integrate dosage and drug information, maybe keep purrr
-  dplyr::select(strain, value, replicate)
-geno_matrix <- data.table::fread("data/toxin_8strain_genotype_matrix.tsv") %>%
-  as.data.frame() %>%
-  dplyr::rename(ECA248 = CB4855, PD1074 = N2)
-
-narrowh2 <- function(df_h, geno_matrix){
-
-  
-  # Narrow-sense Heritability
-  pheno_strains <- unique(df_h$strain)
-  
-  A <- sommer::A.mat(t(geno_matrix[,colnames(geno_matrix) %in% pheno_strains]))
-  
-  df_h2 <- data.frame(trait = NA, h2 = NA, h2_SE = NA)
-  
-  # trait <- colnames(df_h)[i+1]
-  df_y <- df_h %>%
-    #dplyr::filter(strain != "ECA393") %>%  ### no geno infor
-    dplyr::arrange(strain) %>%
-    dplyr::select(strain, value) %>%
-    dplyr::mutate(strain = as.character(strain))
-    
-  h2_res <- sommer::mmer(value~1, 
-                         random=~vs(strain,Gu=A), 
-                         data=df_y)
-  
-  
-  h2 <- vpredict(h2_res, h2 ~ (V1) / ( V1+V2))[[1]][1]
-  # h2 <- as.numeric(pin(h2_res, h2 ~ (V1) / (V1+V2))[[1]][1])
-  
-  h2_SE <- vpredict(h2_res, h2 ~ (V1) / ( V1+V2))[[2]][1]
-  # h2_SE <- pin(h2_res, h2 ~ (V1) / (V1+V2))[[2]]
-  
-  h2_combine = c(trait, h2, h2_SE) ## make trait drug and dose information
-  
-  df_h2 <- rbind(df_h2, h2_combine) %>%
-      na.omit() %>%
-      dplyr::arrange(desc(h2))
-  
-  return(df_h2)
-  
-}
-
 ```

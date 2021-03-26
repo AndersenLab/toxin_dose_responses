@@ -65,17 +65,7 @@ H2.bootstrapping.calc <- function(d, nreps = 100, boot = T){
         dplyr::group_by(strain) %>%
         tidyr::nest()
       
-      # Bootstrap
-      indices <- sample(c(1:length(nested$strain)), replace = T)
-      strains <- nested$strain[indices]
-      phenos <- nested$data[indices]
-      form.bootstrap <- function(strain,pheno.reps){
-        pheno.reps %>%
-          dplyr::mutate(strain = strain) %>%
-          dplyr::select(strain, replicate, value)
-      }
-      boot <- purrr::map2(strains, phenos, form.bootstrap) %>%
-        do.call(rbind,.)
+      boot <- d[sample(seq(1:nrow(d)), replace = T),]
       
       check <- boot %>%
         dplyr::group_by(strain) %>%
@@ -527,7 +517,7 @@ drugHeritability <- function(rep.data, concentration_um){
     
   } else {
     
-    herits <- suppressMessages(H2.bootstrapping.calc(d = rep.data, nreps = 100, boot = T))
+    herits <- suppressMessages(H2.bootstrapping.calc(d = rep.data, nreps = 500, boot = T))
     
     H2.est <- as.data.frame(herits[[1]]) %>%
       dplyr::mutate(drug = unique(rep.data$drug),

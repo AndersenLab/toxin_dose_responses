@@ -310,7 +310,7 @@ strain.EC50s <- function(drug.drm, drug.df){
 }
 ```
 
-```{r Three-Model CP Data, message=FALSE, warning=FALSE, include=FALSE}
+```{r Three-Model CP Data, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 ##############
 ## TOXIN 09 ##
 ##############
@@ -657,6 +657,19 @@ MDHD.toxin23A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 
+##############
+## TOXIN 24 ##
+##############
+MDHD.toxin24A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210325_toxin24A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210325_toxin24A_data_1616789627SJW.RData") %>% 
+  dplyr::filter(Worm_Length > 50) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
 # #### TIDY IMAGES #### (ifneedbe)
 # easyXpress::tidyImages(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", rm_other = T)
 # easyXpress::tidyProject(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", plates = "all")
@@ -981,73 +994,73 @@ data.cleaning.plot <- function(data, title){
 ## Assay Summary
 ```{r Assay Diagnostics, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
 # 3 Model
-all.3model.dat <- processed.toxin09A$summarized_processed %>%
-  dplyr::full_join(processed.toxin10A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin11A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin14A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin14B$summarized_processed) %>%
-  dplyr::full_join(processed.toxin15A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin15B$summarized_processed) %>%
-  dplyr::full_join(processed.toxin16A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin17A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin18A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin19A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin22A$summarized_processed) %>%
-  dplyr::full_join(processed.toxin23A$summarized_processed) %>%
-  dplyr::mutate(drug = if_else(drug == "copper",
-                        true = "Copper(II) chloride",
-                        false = drug),
-                drug = if_else(drug == "zinc", 
-                        true = "Zinc dichloride", 
-                        false = drug),
-                drug = if_else(drug == "methyl_mercury",
-                        true = "Methylmercury dichloride",
-                        false = drug),
-                drug = if_else(drug == "cadmium",
-                        true = "Cadmium dichloride",
-                        false = drug),
-                drug = if_else(drug == "nickel",
-                        true = "Nickel dichloride",
-                        false = drug),
-                drug = if_else(drug == "silver",
-                        true = "Silver nitrate",
-                        false = drug)) %>%
-  dplyr::mutate(drug = as.factor(stringr::str_to_sentence(drug)))
-pre.tab <- all.3model.dat %>%
-  dplyr::group_by(drug, strain, Metadata_Experiment) %>%
-  tidyr::nest()
-tab <- list()
-for(i in 1:length(pre.tab$data)){
-  g <- pre.tab$data[[i]] %>%
-    dplyr::mutate(dose = as.factor(concentration_um),
-                  strain = pre.tab$strain[[i]],
-                  drug = pre.tab$drug[[i]],
-                  assay = pre.tab$Metadata_Experiment[[i]])
-  levels(g$dose) <- c(1:length(levels(g$dose)))
-  tab[[i]] <- g
-}
-raw.tab.dat <- Reduce(rbind, tab) %>%
-  dplyr::select(Metadata_Plate, assay, bleach, drug, strain, dose, n, median_wormlength_um, Metadata_Well)
-
-# Percentage of Expected Wells - 3 Model
-raw.tab.dat %>%
-  dplyr::filter(n < 30,
-                n > 5) %>%
-  dplyr::group_by(bleach, drug, strain, assay) %>%
-  summarise(n = n()) %>%
-  dplyr::mutate(perc.full.assay = n/48) %>%
-  ggplot(., mapping = aes(x = strain, y = bleach, fill = perc.full.assay)) + 
-  theme_bw(base_size = 12) + 
-  geom_tile(colour = "black") + 
-  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-        legend.position = "top", legend.justification = "left",
-        panel.grid = element_blank(),
-        strip.text.y.right = element_text(angle = 0)) +
-  scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
-  facet_grid(drug~assay, drop = TRUE, scales = "free", space = "free") + 
-  labs(x = "Strain", y = "Bleach", title = "3 Worm Model Measurements")+ 
-  ggsave(filename =  "output/3model.heatmap.png", height = 10, width = 15)
-
+# all.3model.dat <- processed.toxin09A$summarized_processed %>%
+#   dplyr::full_join(processed.toxin10A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin11A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin14A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin14B$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin15A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin15B$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin16A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin17A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin18A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin19A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin22A$summarized_processed) %>%
+#   dplyr::full_join(processed.toxin23A$summarized_processed) %>%
+#   dplyr::mutate(drug = if_else(drug == "copper",
+#                         true = "Copper(II) chloride",
+#                         false = drug),
+#                 drug = if_else(drug == "zinc", 
+#                         true = "Zinc dichloride", 
+#                         false = drug),
+#                 drug = if_else(drug == "methyl_mercury",
+#                         true = "Methylmercury dichloride",
+#                         false = drug),
+#                 drug = if_else(drug == "cadmium",
+#                         true = "Cadmium dichloride",
+#                         false = drug),
+#                 drug = if_else(drug == "nickel",
+#                         true = "Nickel dichloride",
+#                         false = drug),
+#                 drug = if_else(drug == "silver",
+#                         true = "Silver nitrate",
+#                         false = drug)) %>%
+#   dplyr::mutate(drug = as.factor(stringr::str_to_sentence(drug)))
+# pre.tab <- all.3model.dat %>%
+#   dplyr::group_by(drug, strain, Metadata_Experiment) %>%
+#   tidyr::nest()
+# tab <- list()
+# for(i in 1:length(pre.tab$data)){
+#   g <- pre.tab$data[[i]] %>%
+#     dplyr::mutate(dose = as.factor(concentration_um),
+#                   strain = pre.tab$strain[[i]],
+#                   drug = pre.tab$drug[[i]],
+#                   assay = pre.tab$Metadata_Experiment[[i]])
+#   levels(g$dose) <- c(1:length(levels(g$dose)))
+#   tab[[i]] <- g
+# }
+# raw.tab.dat <- Reduce(rbind, tab) %>%
+#   dplyr::select(Metadata_Plate, assay, bleach, drug, strain, dose, n, median_wormlength_um, Metadata_Well)
+# 
+# # Percentage of Expected Wells - 3 Model
+# raw.tab.dat %>%
+#   dplyr::filter(n < 30,
+#                 n > 5) %>%
+#   dplyr::group_by(bleach, drug, strain, assay) %>%
+#   summarise(n = n()) %>%
+#   dplyr::mutate(perc.full.assay = n/48) %>%
+#   ggplot(., mapping = aes(x = strain, y = bleach, fill = perc.full.assay)) + 
+#   theme_bw(base_size = 12) + 
+#   geom_tile(colour = "black") + 
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
+#         legend.position = "top", legend.justification = "left",
+#         panel.grid = element_blank(),
+#         strip.text.y.right = element_text(angle = 0)) +
+#   scale_fill_distiller(palette = "RdYlBu", direction = 1, name = "Assay Complement (% Expected Wells)") + 
+#   facet_grid(drug~assay, drop = TRUE, scales = "free", space = "free") + 
+#   labs(x = "Strain", y = "Bleach", title = "3 Worm Model Measurements")+ 
+#   ggsave(filename =  "output/3model.heatmap.png", height = 10, width = 15)
+# 
 
 
 # 4 Model - Worm_Length Filtered
@@ -1064,6 +1077,7 @@ all.4model.dat <- MDHD.toxin09A$summarized_processed %>%
   dplyr::full_join(MDHD.toxin19A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin22A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin23A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin24A$summarized_processed) %>%
   dplyr::mutate(drug = if_else(drug == "copper",
                         true = "Copper(II) chloride",
                         false = drug),

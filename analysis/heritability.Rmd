@@ -517,7 +517,7 @@ drugHeritability <- function(rep.data, concentration_um){
     
   } else {
     
-    herits <- suppressMessages(H2.bootstrapping.calc(d = rep.data, nreps = 500, boot = T))
+    herits <- suppressMessages(H2.bootstrapping.calc(d = rep.data, nreps = 200, boot = T))
     
     H2.est <- as.data.frame(herits[[1]]) %>%
       dplyr::mutate(drug = unique(rep.data$drug),
@@ -727,25 +727,25 @@ processed.toxin23A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 ## TOXIN 09 ##
 ##############
-MDHD.toxin09A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200711_toxin09A", 
+MDHD.toxin09A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200711_toxin09A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20200711_toxin09A_data_1603396935.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
 ## TOXIN 10 ##
 ##############
-MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A", 
+MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200802_toxin10A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20200802_toxin10A_data_1603469205.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -753,11 +753,11 @@ MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200924_toxin11A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -777,20 +777,20 @@ MDHD.toxin12A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin14A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201210_toxin14A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201210_toxin14A_data_1609973542SJW.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 MDHD.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201211_toxin14B",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201211_toxin14B_data_1609875275SJW.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 
@@ -799,20 +799,20 @@ MDHD.toxin14B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin15A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201217_toxin15A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201217_toxin15A_data_1609886407SJW.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 MDHD.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20201218_toxin15B",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20201218_toxin15B_data_1609979126SJW.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -820,11 +820,11 @@ MDHD.toxin15B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210129_toxin16A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20210129_toxin16A_data_1612115412SJW.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -832,11 +832,11 @@ MDHD.toxin16A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin17A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210204_toxin17A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20210204_toxin17A_data_1612562886SJW.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
-  easyXpress::setFlags(.) %>% 
+  easyXpress::setFlags(.) %>%
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
 ##############
@@ -863,6 +863,7 @@ MDHD.toxin19A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
+
 ##############
 ## TOXIN 22 ##
 ##############
@@ -875,12 +876,26 @@ MDHD.toxin22A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
+
 ##############
 ## TOXIN 23 ##
 ##############
 MDHD.toxin23A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210318_toxin23A/",
                                              design = T,
                                              rdafile = "CellProfiler-Analysis_20210318_toxin23A_data_1616184391SJW.RData") %>% 
+  dplyr::filter(Worm_Length > 50) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
+
+##############
+## TOXIN 24 ##
+##############
+MDHD.toxin24A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210325_toxin24A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210325_toxin24A_data_1616789627SJW.RData") %>% 
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
@@ -923,7 +938,8 @@ all.dat <- MDHD.toxin09A$summarized_processed %>%
   dplyr::full_join(MDHD.toxin18A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin19A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin22A$summarized_processed) %>%
-  dplyr::full_join(MDHD.toxin23A$summarized_processed)
+  dplyr::full_join(MDHD.toxin23A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin24A$summarized_processed)
 
 all.dat <- all.dat %>%
   dplyr::mutate(drug = if_else(drug == "copper",

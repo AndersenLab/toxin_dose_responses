@@ -675,7 +675,7 @@ MDHD.toxin24A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 # easyXpress::tidyProject(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", plates = "all")
 ```
 
-```{r message=TRUE, warning=FALSE, include=FALSE}
+```{r, message=TRUE, warning=FALSE, include=FALSE}
 CP.data.list <- as.list(ls(pattern = "processed"))
 MDHD.data.list <- as.list(ls(pattern = "MDHD"))
 pull.toxin <- function(data, toxin){

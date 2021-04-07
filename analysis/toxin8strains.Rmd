@@ -28,6 +28,7 @@ require(RCurl)
 require(RColorBrewer)
 require(workflowr)
 require(cowplot)
+require(ggbeeswarm)
 
 setwd("~/Documents/projects/toxin_dose_responses/")
 

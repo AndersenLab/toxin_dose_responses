@@ -27,6 +27,8 @@ require(ddpcr)
 require(RCurl)
 require(RColorBrewer)
 require(workflowr)
+require(cowplot)
+
 setwd("~/Documents/projects/toxin_dose_responses/")
 
 # Custom function to find tick vector
@@ -231,6 +233,8 @@ plot_EC50s_on_DRC <- function(all.model.list, toxin, metadata){
           next
   }
   options(scipen = 999999)
+  strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
+  names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
   plot <- ggplot(data = trait_data, aes(x = concentration_um, 
                                         y = value, 
                                         colour = strain)) +
@@ -253,6 +257,8 @@ plot_EC50s_on_DRC <- function(all.model.list, toxin, metadata){
     scale_x_log10(breaks = logticks(c(trait_predictions$conc, max(trait_predictions$EC)),"breaks"),
                   labels = logticks(c(trait_predictions$conc, max(trait_predictions$EC)), "labels")) +
     scale_y_continuous(limits = c(-750,100)) + 
+    scale_fill_manual(name = "Strain", values = strain_colors) + 
+    scale_colour_manual(name = "Strain", values = strain_colors) +
     labs(y = "Relative Worm Length (µm)",
          x = "Concentration (µM)",
          fill = "Strain",
@@ -260,6 +266,8 @@ plot_EC50s_on_DRC <- function(all.model.list, toxin, metadata){
          title = unique(trait_data$drug)) + 
     theme(plot.title = element_text(hjust = 0.5))
   
+  
+  return(assign(paste(paste(strsplit(unique(trait_data$drug),split = " ")[[1]], collapse = "_"), "DRCplot", sep = "_"), plot, envir = parent.frame()))
   print(plot)
   }# trait loop
   
@@ -669,7 +677,19 @@ MDHD.toxin24A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
+##############
+## TOXIN 25 ##
+##############
+MDHD.toxin25A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210401_toxin25A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210401_toxin25A_data_1617560356SJW.RData") %>% 
+  dplyr::filter(Worm_Length > 50) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
+beepr::beep(sound = "fanfare")
 # #### TIDY IMAGES #### (ifneedbe)
 # easyXpress::tidyImages(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", rm_other = T)
 # easyXpress::tidyProject(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", plates = "all")
@@ -957,20 +977,21 @@ cleanData <- function(raw.data){
   return(list(full_df_proc,drug.filtering.summary))
 }
 dose.check.plot <- function(data){
+  strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
+  names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
   ggplot(data) + 
   theme_bw(base_size = 8) + 
-  geom_boxplot(mapping = aes(x = strain, y = median_wormlength_um_reg), 
-               outlier.shape = NA, 
-               fill = "grey50") + 
-  geom_jitter(mapping = aes(x = strain, y = median_wormlength_um_reg, colour = Metadata_Experiment),
-              size = 1, alpha = 0.75) + 
+  # geom_jitter(mapping = aes(x = strain, y = median_wormlength_um_reg, colour = Metadata_Experiment),size = 1) + 
+    geom_quasirandom(mapping = aes(x = strain, y = median_wormlength_um_reg, colour = Metadata_Experiment), size = 1) + 
+    geom_boxplot(mapping = aes(x = strain, y = median_wormlength_um_reg), 
+               outlier.shape = NA, alpha = 0.5) + 
   facet_wrap(.~round(concentration_um,2), scales = "free") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         legend.position = "top") + 
   labs(fill = "Strain",
        y = "Relative Worm Length (um)",
        x = "Strain") + 
-  theme(plot.title = element_text(hjust = 0.5)) + 
+  theme(plot.title = element_text(hjust = 0.5), legend.box="vertical") + 
   ylim(c(-810,200)) +
   scale_colour_brewer(palette = "Dark2") + 
   ggtitle(unique(data$drug))
@@ -988,7 +1009,22 @@ data.cleaning.plot <- function(data, title){
   facet_wrap(.~Metadata_Experiment+bleach) + 
   ggtitle(paste(unique(data$drug), title, sep = ": ")) + 
   labs(x = "Strain", y = "Experimental Retention (% of Expected Wells)")
-  }
+}
+sampling.plot <- function(data){
+  data %>%
+  dplyr::group_by(strain, bleach, Metadata_Experiment, concentration_um) %>%
+  dplyr::summarise(n.wells = n()) %>%
+  tidyr::unite("assay_bleach", Metadata_Experiment:bleach) %>%
+  ggplot(mapping = aes(x = assay_bleach, y = n.wells, fill = strain)) + 
+  theme_bw() + 
+  geom_hline(yintercept = 30, linetype = 3) + 
+  geom_col() + 
+  facet_wrap(.~concentration_um) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+  labs(x = "Independent Bleaches",
+       y = "Number of Wells",
+       title = unique(data$drug))
+}
 ```
 
 ## Assay Summary
@@ -1078,6 +1114,7 @@ all.4model.dat <- MDHD.toxin09A$summarized_processed %>%
   dplyr::full_join(MDHD.toxin22A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin23A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin24A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin25A$summarized_processed) %>%
   dplyr::mutate(drug = if_else(drug == "copper",
                         true = "Copper(II) chloride",
                         false = drug),
@@ -1181,6 +1218,7 @@ control.wells.variance %>%
   dplyr::filter(metric == "cv.n") %>%
   aov(data = ., formula = value ~ assay * as.factor(bleach) + strain ) %>%
   summary()
+
 ```
 
 ## Silver
@@ -1189,13 +1227,15 @@ silver <- purrr::map2(MDHD.data.list,
                       "silver",
                       pull.toxin)
 silver.df <- Reduce(rbind,silver) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin15A")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 data.cleaning.plot(silver.df[[2]], "Bleach Quality")
 dose.check.plot(silver.df[[1]])
+
 
 drug.drm <- suppressMessages(fit_all_models(data = silver.df[[1]], 
                                             traits = "median_wormlength_um_reg"))
@@ -1212,16 +1252,17 @@ silver.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 cadmium <- purrr::map2(MDHD.data.list, 
                         "cadmium",
                         pull.toxin)
-print("Excluding toxin09A: Inconsistent Response")
 
 cadmium.df <- Reduce(rbind,cadmium) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin11A","toxin15A")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
-data.cleaning.plot(cadmium.df[[2]], "Bleach Quality")
+data.cleaning.plot(cadmium.df[[2]], "Bleach Quality: Filtered")
 dose.check.plot(cadmium.df[[1]])
+
 drug.drm <- suppressMessages(fit_all_models(data = cadmium.df[[1]], 
                                             traits = "median_wormlength_um_reg"))
 plot_EC50s_on_DRC(all.model.list = drug.drm,
@@ -1239,9 +1280,11 @@ copper <- purrr::map2(MDHD.data.list,
                         "copper",
                         pull.toxin)
 copper.df <- Reduce(rbind,copper) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 
 data.cleaning.plot(copper.df[[2]], "Bleach Quality")
@@ -1262,9 +1305,11 @@ nickel <- purrr::map2(MDHD.data.list,
                         "nickel",
                         pull.toxin)
 nickel.df <- Reduce(rbind,nickel) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%## from combining 9,10,11
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%## from combining 9,10,11
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
 data.cleaning.plot(nickel.df[[2]], "Bleach Quality")
 dose.check.plot(nickel.df[[1]])
@@ -1284,10 +1329,11 @@ paraquat <- purrr::map2(MDHD.data.list,
                         "paraquat",
                         pull.toxin)
 paraquat.df <- Reduce(rbind,paraquat) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin10A","toxin11A")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
 data.cleaning.plot(paraquat.df[[2]], "Bleach Quality")
 dose.check.plot(paraquat.df[[1]])
@@ -1310,10 +1356,11 @@ zinc <- purrr::map2(MDHD.data.list,
                         "zinc",
                         pull.toxin)
 zinc.df <- Reduce(rbind,zinc) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  # dplyr::filter(Metadata_Experiment == "toxin10A") %>%## from combining 9,10,11
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
 data.cleaning.plot(zinc.df[[2]], "Bleach Quality")
 dose.check.plot(zinc.df[[1]])
@@ -1323,6 +1370,7 @@ drug.drm <- suppressMessages(fit_all_models(data = zinc.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(zinc.df[[1]]$drug)), 
                   metadata = zinc.df[[1]])
+
 zinc.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = zinc.df[[1]])
 ```
@@ -1333,12 +1381,12 @@ pyraclostrobin <- purrr::map2(MDHD.data.list,
                         "pyraclostrobin",
                         pull.toxin)
 
-print("Excluding toxin11A: Inconsistent Response")
 pyraclostrobin.df <- Reduce(rbind,pyraclostrobin) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(Metadata_Experiment != "toxin11A") %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_1","toxin15B_2")) %>%
   cleanData(.)
 data.cleaning.plot(pyraclostrobin.df[[2]], "Bleach Quality")
 dose.check.plot(pyraclostrobin.df[[1]])
@@ -1357,10 +1405,11 @@ aldicarb <- purrr::map2(MDHD.data.list,
                         "aldicarb",
                         pull.toxin)
 aldicarb.df <- Reduce(rbind,aldicarb) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(Metadata_Experiment != "toxin10A") %>%
+  dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1")) %>%
   cleanData(.)
 data.cleaning.plot(aldicarb.df[[2]], "Bleach Quality")
 dose.check.plot(aldicarb.df[[1]])
@@ -1379,12 +1428,13 @@ aldicarb.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
 chlorfenapyr <- purrr::map2(MDHD.data.list, 
                         "chlorfenapyr",
                         pull.toxin)
-print("Excluding toxin09A, toxin10A, toxin11A, toxin12A: No Response/Variable Dilution")
+
 chlorfenapyr.df <- Reduce(rbind,chlorfenapyr) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% 
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
-  dplyr::filter(cv.censor != 1) %>%## from combining 9,10,11
-  dplyr::filter(!Metadata_Experiment %in% c("toxin09A","toxin10A","toxin11A","toxin12A")) %>% ## from combining 9,10,11
+  dplyr::filter(cv.censor != 1) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
 data.cleaning.plot(chlorfenapyr.df[[2]], "Bleach Quality")
 dose.check.plot(chlorfenapyr.df[[1]])
@@ -1405,9 +1455,11 @@ methomyl <- purrr::map2(MDHD.data.list,
                         "methomyl",
                         pull.toxin)
 methomyl.df <- Reduce(rbind,methomyl) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% ## from combining 9,10,11
+  dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1","toxin14B_1")) %>%
   cleanData(.)
 
 data.cleaning.plot(methomyl.df[[2]], "Bleach Quality")
@@ -1430,10 +1482,11 @@ methyl.mercury <- purrr::map2(MDHD.data.list,
                         "mercury",
                         pull.toxin)
 methyl.mercury.df <- Reduce(rbind,methyl.mercury) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>%## from combining 9,10,11
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  # dplyr::filter(Metadata_Experiment != "toxin10A") %>%
+  dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1")) %>%
   cleanData(.)
 
 data.cleaning.plot(methyl.mercury.df[[2]], "Bleach Quality")
@@ -1455,9 +1508,11 @@ tpp <- purrr::map2(MDHD.data.list,
                    "triphenyl",
                    pull.toxin)
 tpp.df <- Reduce(rbind,tpp) %>%
+  dplyr::mutate(drug = levels(as.factor(drug))[2],
+                assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::mutate(drug = levels(as.factor(drug))[2]) %>% ## from combining 9,10,11
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
 
 data.cleaning.plot(tpp.df[[2]], "Bleach Quality")
@@ -1479,6 +1534,7 @@ arsenic <- purrr::map2(MDHD.data.list,
                    "Arsenic",
                    pull.toxin)
 arsenic.df <- Reduce(rbind,arsenic) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1501,8 +1557,10 @@ carbaryl <- purrr::map2(MDHD.data.list,
                    "Carbaryl",
                    pull.toxin)
 carbaryl.df <- Reduce(rbind,carbaryl) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
+  # dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 data.cleaning.plot(carbaryl.df[[2]], "Bleach Quality")
 dose.check.plot(carbaryl.df[[1]])
@@ -1680,7 +1738,6 @@ chlorothalonil.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
                                     drug.df = chlorothalonil.df[[1]])
 ```
 
-
 ## Deltamethrin
 ```{r deltamethrin, echo=FALSE, message=FALSE, warning=FALSE}
 deltamethrin <- purrr::map2(MDHD.data.list, 
@@ -1750,14 +1807,37 @@ propoxur.EC.estimates <- strain.EC50s(drug.drm = drug.drm,
                                     drug.df = propoxur.df[[1]])
 ```
 
+## Mancozeb
+```{r mancozeb, echo=FALSE, message=FALSE, warning=FALSE}
+mancozeb <- purrr::map2(MDHD.data.list, 
+                   "Mancozeb",
+                   pull.toxin)
 
+mancozeb.df <- Reduce(rbind,mancozeb) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1, drug != "Mancozeb_Dilute") %>%
+  cleanData(.)
+data.cleaning.plot(mancozeb.df[[2]], "Bleach Quality")
+dose.check.plot(mancozeb.df[[1]])
+
+drug.drm <- suppressMessages(fit_all_models(data = mancozeb.df[[1]], 
+                                            traits = "median_wormlength_um_reg"))
+plot_EC50s_on_DRC(all.model.list = drug.drm,
+                  toxin = levels(as.factor(mancozeb.df[[1]]$drug)), 
+                  metadata = mancozeb.df[[1]])
+
+mancozeb.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
+                                    drug.df = mancozeb.df[[1]])
+```
 
 
 
 
 ## EC Estimates
 ```{r DRC metrics, echo=FALSE, message=FALSE, warning=FALSE}
-drug.classes <- read.csv("data/drugclasses.csv")
+drug.classes <- read.csv("data/drugclasses.csv") %>%
+  dplyr::select(c(drug, class)) %>%
+  dplyr::arrange(class)
 EC.est.list <- list()
 for(i in 1:length(ls(pattern = "estimate"))){
   EC.est.list[[i]] <- get(ls(pattern = "estimate")[i])
@@ -1920,7 +2000,6 @@ purrr::pmap(.l = list(nested.summary.tables$data,
             .f = fancy_print)
 ```
 
-
 ```{r eval=FALSE, include=FALSE}
 drug = "triphenyl"
 raw <- purrr::map2(MDHD.data.list,
@@ -1946,4 +2025,90 @@ ggplot(model.dists, mapping = aes(x = Worm_Length, fill = model)) +
   theme(legend.position = "top", legend.justification = "center") + 
   ggtitle(unique(model.dists$drug)) + 
   ggsave(paste0("output/",unique(model.dists$drug),"_MDHD.junk.png"), width = 10, height = 6)
+```
+
+
+
+## Toxicant Classes
+```{r carbamate insecticides, echo=FALSE, message=FALSE, warning=FALSE}
+drug.classes %>%
+  dplyr::filter(class == "Carbamate Insecticide") %>%
+  dplyr::select(drug)
+strain.legend <- cowplot::get_legend(Aldicarb_DRCplot)
+tx.plot.carb <- cowplot::plot_grid(Methomyl_DRCplot+ theme(legend.position = "none", axis.text.y = element_blank()),
+                                   Aldicarb_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()), 
+                                   Carbaryl_DRCplot+ theme(legend.position = "none", axis.text.y = element_blank()), 
+                                   Propoxur_DRCplot+theme(legend.position = "none", axis.text.y = element_blank()), nrow = 2)
+carb.DRCs <- cowplot::plot_grid(tx.plot.carb, strain.legend, rel_heights = c(8,1), nrow = 2)
+carb.DRCs
+ggsave(carb.DRCs, filename = "output/carb.DRCs.png", height = 7.5, width = 10)
+```
+
+```{r fungicides, echo=FALSE, message=FALSE, warning=FALSE}
+drug.classes %>%
+  dplyr::filter(class == "Fungicide") %>%
+  dplyr::select(drug)
+strain.legend <- cowplot::get_legend(Carboxin_DRCplot)
+tx.plot.fungi <- cowplot::plot_grid(Pyraclostrobin_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                    Carboxin_DRCplot+ theme(legend.position = "none", axis.text.y = element_blank()), 
+                                    Mancozeb_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()), 
+                                    Chlorothalonil_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                    nrow = 2)
+fungi.DRCs <- cowplot::plot_grid(tx.plot.fungi, strain.legend, rel_heights = c(8,1), nrow = 2)
+fungi.DRCs
+ggsave(fungi.DRCs, filename = "output/fungi.DRCs.png", height = 7.5, width = 10)
+```
+
+```{r pyrethroids, echo=FALSE, message=FALSE, warning=FALSE}
+drug.classes %>%
+  dplyr::filter(class == "Synthetic Pyrethroid Insecticide") %>%
+  dplyr::select(drug)
+Deltamethrin_DRCplot
+```
+
+```{r organophosphate, echo=FALSE, message=FALSE, warning=FALSE}
+drug.classes %>%
+  dplyr::filter(class == "Organophosphate insecticide") %>%
+  dplyr::select(drug)
+strain.legend <- cowplot::get_legend(Chlorpyrifos_DRCplot)
+tx.plot.organophosphate <- cowplot::plot_grid(Chlorpyrifos_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                    Malathion_DRCplot+ theme(legend.position = "none", axis.text.y = element_blank()),
+                                    nrow = 1)
+organophosphate.DRCs <- cowplot::plot_grid(tx.plot.organophosphate, strain.legend, rel_heights = c(8,1), nrow = 2)
+organophosphate.DRCs
+ggsave(organophosphate.DRCs, filename = "output/organophosphate.DRCs.png", height = 5, width = 10)
+```
+
+```{r metal, echo=FALSE, message=FALSE, warning=FALSE}
+drug.classes %>%
+  dplyr::filter(class == "Heavy Metal") %>%
+  dplyr::select(drug)
+strain.legend <- cowplot::get_legend(Arsenic_trioxide_DRCplot)
+tx.plot.metals <- cowplot::plot_grid(Nickel_dichloride_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     `Copper(II)_chloride_DRCplot` + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     Zinc_dichloride_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()), # transition metals
+                                     Manganese_dichloride_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     Arsenic_trioxide_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     Cadmium_dichloride_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     Silver_nitrate_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     `Lead(II)_nitrate_DRCplot` + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     Methylmercury_dichloride_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     nrow = 3)
+metal.DRCs <- cowplot::plot_grid(tx.plot.metals, strain.legend, rel_heights = c(8,1), nrow = 2)
+metal.DRCs
+ggsave(metal.DRCs, filename = "output/metal.DRCs.png", height = 9, width = 10)
+```
+
+```{r herb, echo=FALSE, message=FALSE, warning=FALSE}
+drug.classes %>%
+  dplyr::filter(class == "Herbicide") %>%
+  dplyr::select(drug)
+strain.legend <- cowplot::get_legend(`2,4-D_DRCplot`)
+tx.plot.herb <- cowplot::plot_grid(`2,4-D_DRCplot` + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     Paraquat_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     Atrazine_DRCplot + theme(legend.position = "none", axis.text.y = element_blank()),
+                                     nrow = 1)
+herb.DRCs <- cowplot::plot_grid(tx.plot.herb, strain.legend, rel_heights = c(8,1), nrow = 2)
+herb.DRCs
+ggsave(herb.DRCs, filename = "output/herb.DRCs.png", height = 5, width = 10)
 ```

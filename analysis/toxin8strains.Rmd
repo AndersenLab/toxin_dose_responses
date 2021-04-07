@@ -269,7 +269,6 @@ plot_EC50s_on_DRC <- function(all.model.list, toxin, metadata){
   
   
   return(assign(paste(paste(strsplit(unique(trait_data$drug),split = " ")[[1]], collapse = "_"), "DRCplot", sep = "_"), plot, envir = parent.frame()))
-  print(plot)
   }# trait loop
   
 }
@@ -1243,7 +1242,7 @@ drug.drm <- suppressMessages(fit_all_models(data = silver.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(silver.df[[1]]$drug)), 
                   metadata = silver.df[[1]])
-
+Silver_nitrate_DRCplot
 silver.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = silver.df[[1]])
 ```
@@ -1269,7 +1268,7 @@ drug.drm <- suppressMessages(fit_all_models(data = cadmium.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(cadmium.df[[1]]$drug)), 
                   metadata = cadmium.df[[1]])
-
+Cadmium_dichloride_DRCplot
 
 cadmium.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = cadmium.df[[1]])
@@ -1296,6 +1295,8 @@ drug.drm <- suppressMessages(fit_all_models(data = copper.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(copper.df[[1]]$drug)), 
                   metadata = copper.df[[1]])
+
+`Copper(II)_chloride_DRCplot`
 copper.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = copper.df[[1]])
 ```
@@ -1320,6 +1321,8 @@ drug.drm <- suppressMessages(fit_all_models(data = nickel.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(nickel.df[[1]]$drug)), 
                   metadata = nickel.df[[1]])
+
+Nickel_dichloride_DRCplot
 nickel.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = nickel.df[[1]])
 ```
@@ -1345,6 +1348,8 @@ drug.drm <- suppressMessages(fit_all_models(data = paraquat.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(paraquat.df[[1]]$drug)), 
                   metadata = paraquat.df[[1]])
+
+Paraquat_DRCplot
 paraquat.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = paraquat.df[[1]])
 
@@ -1371,6 +1376,7 @@ drug.drm <- suppressMessages(fit_all_models(data = zinc.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(zinc.df[[1]]$drug)), 
                   metadata = zinc.df[[1]])
+Zinc_dichloride_DRCplot
 
 zinc.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = zinc.df[[1]])
@@ -1396,6 +1402,8 @@ drug.drm <- suppressMessages(fit_all_models(data = pyraclostrobin.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(pyraclostrobin.df[[1]]$drug)), 
                   metadata = pyraclostrobin.df[[1]])
+
+Pyraclostrobin_DRCplot
 pyraclostrobin.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = pyraclostrobin.df[[1]])
 ```
@@ -1420,6 +1428,8 @@ drug.drm <- suppressMessages(fit_all_models(data = aldicarb.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(aldicarb.df[[1]]$drug)), 
                   metadata = aldicarb.df[[1]])
+
+Aldicarb_DRCplot
 aldicarb.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = aldicarb.df[[1]])
 ```
@@ -1445,6 +1455,7 @@ drug.drm <- suppressMessages(fit_all_models(data = chlorfenapyr.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(chlorfenapyr.df[[1]]$drug)), 
                   metadata = chlorfenapyr.df[[1]])
+Chlorfenapyr_DRCplot
 
 chlorfenapyr.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = chlorfenapyr.df[[1]])
@@ -1471,6 +1482,7 @@ drug.drm <- suppressMessages(fit_all_models(data = methomyl.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(methomyl.df[[1]]$drug)), 
                   metadata = methomyl.df[[1]])
+Methomyl_DRCplot
 
 methomyl.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = methomyl.df[[1]])
@@ -1498,7 +1510,7 @@ drug.drm <- suppressMessages(fit_all_models(data = methyl.mercury.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(methyl.mercury.df[[1]]$drug)), 
                   metadata = methyl.mercury.df[[1]])
-
+Methylmercury_dichloride_DRCplot
 methyl.mercury.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = methyl.mercury.df[[1]])
 ```
@@ -1524,7 +1536,7 @@ drug.drm <- suppressMessages(fit_all_models(data = tpp.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(tpp.df[[1]]$drug)), 
                   metadata = tpp.df[[1]])
-
+Triphenyl_phosphate_DRCplot
 tpp.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = tpp.df[[1]])
 ```
@@ -1547,7 +1559,7 @@ drug.drm <- suppressMessages(fit_all_models(data = arsenic.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(arsenic.df[[1]]$drug)), 
                   metadata = arsenic.df[[1]])
-
+Arsenic_trioxide_DRCplot
 arsenic.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = arsenic.df[[1]])
 ```
@@ -1571,7 +1583,7 @@ drug.drm <- suppressMessages(fit_all_models(data = carbaryl.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(carbaryl.df[[1]]$drug)), 
                   metadata = carbaryl.df[[1]])
-
+Carbaryl_DRCplot
 carbaryl.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = carbaryl.df[[1]])
 ```
@@ -1593,7 +1605,7 @@ drug.drm <- suppressMessages(fit_all_models(data = carboxin.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(carboxin.df[[1]]$drug)), 
                   metadata = carboxin.df[[1]])
-
+Carboxin_DRCplot
 carboxin.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = carboxin.df[[1]])
 ```
@@ -1640,7 +1652,7 @@ drug.drm <- suppressMessages(fit_all_models(data = lead.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(lead.df[[1]]$drug)), 
                   metadata = lead.df[[1]])
-
+Chlorpyrifos_DRCplot
 lead.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = lead.df[[1]])
 ```
@@ -1665,7 +1677,7 @@ drug.drm <- suppressMessages(fit_all_models(data = atrazine.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(atrazine.df[[1]]$drug)), 
                   metadata = atrazine.df[[1]])
-
+Atrazine_DRCplot
 atrazine.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = atrazine.df[[1]])
 ```
@@ -1688,7 +1700,7 @@ drug.drm <- suppressMessages(fit_all_models(data = x2.4.D.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(x2.4.D.df[[1]]$drug)), 
                   metadata = x2.4.D.df[[1]])
-
+`2,4-D_DRCplot`
 x2.4.D.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = x2.4.D.df[[1]])
 ```
@@ -1711,7 +1723,7 @@ drug.drm <- suppressMessages(fit_all_models(data = malathion.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(malathion.df[[1]]$drug)), 
                   metadata = malathion.df[[1]])
-
+Malathion_DRCplot
 malathion.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = malathion.df[[1]])
 ```
@@ -1734,7 +1746,7 @@ drug.drm <- suppressMessages(fit_all_models(data = chlorothalonil.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(chlorothalonil.df[[1]]$drug)), 
                   metadata = chlorothalonil.df[[1]])
-
+Chlorothalonil_DRCplot
 chlorothalonil.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = chlorothalonil.df[[1]])
 ```
@@ -1757,7 +1769,7 @@ drug.drm <- suppressMessages(fit_all_models(data = deltamethrin.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(deltamethrin.df[[1]]$drug)), 
                   metadata = deltamethrin.df[[1]])
-
+Deltamethrin_DRCplot
 deltamethrin.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = deltamethrin.df[[1]])
 ```
@@ -1780,7 +1792,7 @@ drug.drm <- suppressMessages(fit_all_models(data = manganese.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(manganese.df[[1]]$drug)), 
                   metadata = manganese.df[[1]])
-
+Manganese_dichloride_DRCplot
 manganese.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = manganese.df[[1]])
 ```
@@ -1803,7 +1815,7 @@ drug.drm <- suppressMessages(fit_all_models(data = propoxur.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(propoxur.df[[1]]$drug)), 
                   metadata = propoxur.df[[1]])
-
+Propoxur_DRCplot
 propoxur.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = propoxur.df[[1]])
 ```
@@ -1826,7 +1838,7 @@ drug.drm <- suppressMessages(fit_all_models(data = mancozeb.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(mancozeb.df[[1]]$drug)), 
                   metadata = mancozeb.df[[1]])
-
+Mancozeb_DRCplot
 mancozeb.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = mancozeb.df[[1]])
 ```

@@ -927,6 +927,19 @@ MDHD.toxin26A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
+
+##############
+## TOXIN 27 ##
+##############
+MDHD.toxin27A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210415_toxin27A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210415_toxin27A_data_1618834612SJW.RData") %>% 
+  dplyr::filter(Worm_Length > 50) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
 beepr::beep(sound = "fanfare")
 # #### TIDY IMAGES #### (ifneedbe)
 # easyXpress::tidyImages(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", rm_other = T)
@@ -1065,7 +1078,7 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2","toxin14A_1","toxin14A_3")) %>%
   cleanData(.)
 
 drug.data.nested <- cadmium.df[[1]] %>%

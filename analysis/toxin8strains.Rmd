@@ -702,6 +702,19 @@ MDHD.toxin26A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
+
+##############
+## TOXIN 27 ##
+##############
+MDHD.toxin27A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210415_toxin27A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210415_toxin27A_data_1618834612SJW.RData") %>% 
+  dplyr::filter(Worm_Length > 50) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
 beepr::beep(sound = "fanfare")
 # #### TIDY IMAGES #### (ifneedbe)
 # easyXpress::tidyImages(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", rm_other = T)
@@ -1060,6 +1073,7 @@ all.4model.dat <- MDHD.toxin09A$summarized_processed %>%
   dplyr::full_join(MDHD.toxin24A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin25A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin26A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin27A$summarized_processed) %>%
   dplyr::mutate(drug = if_else(drug == "copper",
                         true = "Copper(II) chloride",
                         false = drug),
@@ -1203,7 +1217,7 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2","toxin14A_1","toxin14A_3")) %>%
   cleanData(.)
 data.cleaning.plot(cadmium.df[[2]], "Bleach Quality: Filtered")
 dose.check.plot(cadmium.df[[1]])
@@ -1390,7 +1404,7 @@ chlorfenapyr.df <- Reduce(rbind,chlorfenapyr) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1","toxin15B_1")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
 data.cleaning.plot(chlorfenapyr.df[[2]], "Bleach Quality")
 dose.check.plot(chlorfenapyr.df[[1]])
@@ -1539,6 +1553,7 @@ carboxin <- purrr::map2(MDHD.data.list,
                    "Carboxin",
                    pull.toxin)
 carboxin.df <- Reduce(rbind,carboxin) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1562,6 +1577,7 @@ chlorpyrifos <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 print("Excluding toxin17A: No Response")
 chlorpyrifos.df <- Reduce(rbind,chlorpyrifos) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!Metadata_Experiment %in% c("toxin17A")) %>% 
@@ -1586,6 +1602,7 @@ lead <- purrr::map2(MDHD.data.list,
                    "Lead",
                    pull.toxin)
 lead.df <- Reduce(rbind,lead) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1610,6 +1627,7 @@ atrazine <- purrr::map2(MDHD.data.list,
 
 print("Excluding toxin16A: Inaccurate Dilution Series")
 atrazine.df <- Reduce(rbind,atrazine) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!Metadata_Experiment %in% c("toxin16A")) %>% 
@@ -1634,6 +1652,7 @@ x2.4.D <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 
 x2.4.D.df <- Reduce(rbind,x2.4.D) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1657,6 +1676,7 @@ malathion <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 
 malathion.df <- Reduce(rbind,malathion) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1680,6 +1700,7 @@ chlorothalonil <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 
 chlorothalonil.df <- Reduce(rbind,chlorothalonil) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1703,6 +1724,7 @@ deltamethrin <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 
 deltamethrin.df <- Reduce(rbind,deltamethrin) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1726,6 +1748,7 @@ manganese <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 
 manganese.df <- Reduce(rbind,manganese) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1749,6 +1772,7 @@ propoxur <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 
 propoxur.df <- Reduce(rbind,propoxur) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1772,6 +1796,7 @@ mancozeb <- purrr::map2(MDHD.data.list,
                    pull.toxin)
 
 mancozeb.df <- Reduce(rbind,mancozeb) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1, drug != "Mancozeb_Dilute") %>%
   cleanData(.)
@@ -1970,27 +1995,107 @@ EC.est.dat %>%
        y = "EC50 Estimate")
 ```
 
-### EC90
-```{r eval=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE, include=FALSE}
+### EC10
+```{r EC90 plots, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE}
 EC.est.dat %>%
   dplyr::filter(fraction == "EC90",
-                above.max.conc == "EC Estimate Within Dose Range") %>%
-  dplyr::filter(null.estimate != "NA EC Estimate") %>%
-  dplyr::mutate(Lower = ifelse(Lower < 0, 0.1, Lower)) %>%
-  ggplot(., mapping = aes(x = Strain, y = Estimate, fill = Strain, shape = model)) + 
-  theme_bw() + 
-  geom_point(size = 2, alpha = 0.75) + 
-  # geom_pointrange(aes(ymin=Lower, ymax=Upper), size = 0.75, alpha = 0.75) +
-  # geom_text_repel(aes(label = round(Estimate, 2)), size = 2.5, box.padding = 0.5, colour = "black") + 
+                above.max.conc == "EC Estimate Within Dose Range",
+                model == "Log-Logistic",
+                null.estimate != "NA EC Estimate") %>%
+  dplyr::group_by(drug) %>%
+  dplyr::summarise(n = n()) %>%
+  dplyr::filter(n > 5) %>%
+  write.csv("output/toxicants.8strains.EC90.csv")
+
+tox.filter <- EC.est.dat %>%
+  dplyr::filter(fraction == "EC90",
+                above.max.conc == "EC Estimate Within Dose Range",
+                model == "Log-Logistic",
+                null.estimate != "NA EC Estimate") %>%
+  dplyr::group_by(drug) %>%
+  dplyr::summarise(n = n())
+
+drug.nested.ECs <- EC.est.dat %>%
+  dplyr::filter(fraction == "EC90",
+                model == "Log-Logistic",
+                null.estimate != "NA EC Estimate") %>%
+  dplyr::group_by(drug) %>%
+  tidyr::nest()
+
+
+EC.plot <- function(data, drug){
+  data %>%
+    dplyr::filter(Estimate < 10000) %>%
+    ggplot(., mapping = aes(x = Strain, y = Estimate, colour = above.max.conc)) + 
+    theme_bw() +
+    geom_point(size = 0.5) + 
+    geom_pointrange(aes(ymin=Lower, ymax=Upper)) +
+    scale_y_log10() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+          legend.text = element_text(size = 7.5),
+          legend.title = element_text(size = 7.5),
+          legend.position = "top",
+          panel.grid = element_blank()) + 
+    geom_text_repel(aes(label = round(Estimate, 2)), size = 3, box.padding = 0.5, colour = "black") +
+    scale_colour_manual(name = "Above Maximum Dose?", values = c("black","red")) +
+    labs(x = "Strain", y = "EC90 Estimate (µM)", title = drug) +
+    ggsave(filename = paste("output/",drug,"_EC90.plot.png", sep = ""), height = 6, width = 6)
+}
+purrr::map2(drug.nested.ECs$data, drug.nested.ECs$drug, EC.plot)
+
+EC.est.dat %>%
+  dplyr::filter(fraction == "EC90",
+                model == "Log-Logistic",
+                null.estimate != "NA EC Estimate") %>%
+  # dplyr::mutate(Lower = ifelse(Lower < 0, 0.1, Lower)) %>%
+  ggplot(., mapping = aes(x = Strain, y = Estimate)) + 
+  theme_bw() +
+  geom_point(size = 0.5) + 
+  geom_pointrange(aes(ymin=Lower, ymax=Upper)) +
   facet_wrap(drug~., scales = "free") +
   scale_y_log10() +
   theme(axis.text.x = element_text(angle = 45, hjust =1, vjust = 1),
         legend.position = "top") + 
-  scale_shape_manual(name = "Dose-Response Model", values = c(21,22,23)) + 
-  # scale_fill_manual(name = "Strain", values = park_palettes$GeneralGrant) + 
   guides(fill = FALSE) + 
   labs(x = "Strain", 
-       y = "EC90 Estimate")
+       y = "EC90 Estimate (µM)")
+
+
+EC.comps <- EC.est.dat %>%
+  dplyr::full_join(.,drug.classes) %>%
+  dplyr::filter(fraction == "EC90",
+                above.max.conc == "EC Estimate Within Dose Range",
+                model == "Log-Logistic",
+                null.estimate != "NA EC Estimate",
+                drug %in% tox.filter$drug)
+
+EC90.nested.tx.classes <- EC.comps %>%
+  dplyr::group_by(class, drug) %>%
+  dplyr::summarise(drug.mean.EC90 = mean(log(Estimate))) %>%
+  dplyr::full_join(EC.comps,.) %>%
+  dplyr::mutate(Normalized.EC90 = log(Estimate) - drug.mean.EC90) %>%
+  dplyr::ungroup() %>%
+  dplyr::group_by(class) %>%
+  tidyr::nest()
+
+rel.EC90.plots <- function(data, class){
+  data %>%
+    dplyr::group_by(Strain) %>%
+    dplyr::summarise(strain.mean.norm.EC90 = mean(Normalized.EC90)) %>%
+    dplyr::full_join(data,.) %>%
+    ggplot(., mapping = aes(x = Strain, y = Normalized.EC90, colour = drug)) + 
+    theme_bw() + 
+    geom_point(size = 1.5, alpha = 0.5) + 
+    geom_point(mapping = aes(x = Strain, y = strain.mean.norm.EC90), colour = "black", shape = 23, size = 3) + 
+    theme(axis.text.x = element_text(angle = 45, hjust =1, vjust = 1),
+          panel.grid = element_blank()) + 
+    scale_colour_brewer(name = "Toxicant", palette = "Set1") +
+    labs(x = "Toxicant", 
+         y = "Relative EC90 Estimate (µM)",
+         title = paste(class,"s",sep = "")) +
+    ggsave(paste("output/EC90.strain.comp",class,"png",sep = "."), width = 6, height = 6)
+}
+purrr::map2(EC90.nested.tx.classes$data, EC90.nested.tx.classes$class, rel.EC90.plots)
 ```
 
 ### Summary Tables
@@ -2132,4 +2237,32 @@ tx.plot.herb <- cowplot::plot_grid(`2,4-D_DRCplot` + theme(legend.position = "no
 herb.DRCs <- cowplot::plot_grid(tx.plot.herb, strain.legend, rel_heights = c(8,1), nrow = 2)
 herb.DRCs
 ggsave(herb.DRCs, filename = "output/herb.DRCs.png", height = 5, width = 10)
+```
+
+
+
+
+```{r}
+hazelnut <- list()
+drug.assay.bleaches <- ls(pattern = "df")
+for(i in 1:length(drug.assay.bleaches)){
+  print(i)
+  hazelnut[[i]] <- get(drug.assay.bleaches[[i]])[[1]] %>%
+    dplyr::group_by(assay_bleach, drug) %>%
+    dplyr::distinct() %>%
+    dplyr::summarise(n.wells = n())
+  
+}
+
+assay.bleach.n <- do.call(rbind, hazelnut)
+
+labels <- assay.bleach.n
+ggplot(assay.bleach.n, mapping = aes(x = drug, y = n.wells, fill = assay_bleach)) + 
+  theme_bw() + 
+  geom_jitter(width = 0.1, shape = 21) + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  labs(x = "Toxicant", y = "Number of Wells")
+
+
+
 ```

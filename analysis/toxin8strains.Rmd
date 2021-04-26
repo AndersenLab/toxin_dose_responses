@@ -1591,7 +1591,7 @@ drug.drm <- suppressMessages(fit_all_models(data = chlorpyrifos.df[[1]],
 plot_EC50s_on_DRC(all.model.list = drug.drm,
                   toxin = levels(as.factor(chlorpyrifos.df[[1]]$drug)), 
                   metadata = chlorpyrifos.df[[1]])
-
+Chlorpyrifos_DRCplot
 chlorpyrifos.EC.estimates <- strain.EC50s(drug.drm = drug.drm, 
                                     drug.df = chlorpyrifos.df[[1]])
 ```
@@ -2237,32 +2237,4 @@ tx.plot.herb <- cowplot::plot_grid(`2,4-D_DRCplot` + theme(legend.position = "no
 herb.DRCs <- cowplot::plot_grid(tx.plot.herb, strain.legend, rel_heights = c(8,1), nrow = 2)
 herb.DRCs
 ggsave(herb.DRCs, filename = "output/herb.DRCs.png", height = 5, width = 10)
-```
-
-
-
-
-```{r}
-hazelnut <- list()
-drug.assay.bleaches <- ls(pattern = "df")
-for(i in 1:length(drug.assay.bleaches)){
-  print(i)
-  hazelnut[[i]] <- get(drug.assay.bleaches[[i]])[[1]] %>%
-    dplyr::group_by(assay_bleach, drug) %>%
-    dplyr::distinct() %>%
-    dplyr::summarise(n.wells = n())
-  
-}
-
-assay.bleach.n <- do.call(rbind, hazelnut)
-
-labels <- assay.bleach.n
-ggplot(assay.bleach.n, mapping = aes(x = drug, y = n.wells, fill = assay_bleach)) + 
-  theme_bw() + 
-  geom_jitter(width = 0.1, shape = 21) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
-  labs(x = "Toxicant", y = "Number of Wells")
-
-
-
 ```

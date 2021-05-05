@@ -542,6 +542,41 @@ today <- format(Sys.time(), '%Y%m%d')
 geno_matrix <- data.table::fread("data/toxin_8strain_genotype_matrix.tsv") %>%
   as.data.frame() %>%
   dplyr::rename(ECA248 = CB4855, PD1074 = N2)
+strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
+names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
+se.DR <- function(x){
+  norm <- x %>%
+    dplyr::group_by(strain,) %>%
+    dplyr::filter(concentration_um == 0) %>%
+    dplyr::summarize(mean_ctrl = mean(mean_wormlength_um_reg)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(strain, mean_ctrl) %>% ##added trait
+    dplyr::full_join(x , by = c("strain")) %>% ## "trait" instead of "condition"
+    dplyr::distinct() %>%
+    dplyr::mutate(norm_pheno = mean_wormlength_um_reg - mean_ctrl) 
+
+dose_avg <- norm %>%
+  dplyr::group_by(strain, concentration_um) %>%
+  dplyr::summarise(avg = mean(norm_pheno), st_dev = sd(norm_pheno))
+
+dose.range <- unique(dose_avg$concentration_um)[length(unique(dose_avg$concentration_um))] - unique(dose_avg$concentration_um)[2]
+
+dose_avg %>% 
+  ggplot(.) +
+  theme_bw() + 
+  #geom_point(data = dose_avg , aes(x=log(concentration_um) , y=avg), size = 0.1) +
+  geom_errorbar(aes(x=log(concentration_um), 
+                    ymin=avg-st_dev, 
+                    ymax = avg+st_dev,
+                    colour = strain), width = 1/(dose.range/10))  +
+  geom_line(aes(x=log(concentration_um), 
+                y=avg, 
+                group = strain, 
+                colour = strain), size = 0.5) +
+  scale_colour_manual(values = strain_colors, name = "Strain") +
+  scale_y_continuous("Normalized response") + 
+  ggtitle(unique(x$drug))
+}
 ```
 
 ```{r Three-Model CP Data, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
@@ -576,7 +611,7 @@ processed.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
 ##############
 processed.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200924_toxin11A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>% 
+                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1602696342SJW.RData") %>% 
   dplyr::filter(model != "MDHD") %>%
   droplevels() %>%
   easyXpress::modelSelection(.) %>%
@@ -754,7 +789,7 @@ MDHD.toxin10A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
 ##############
 MDHD.toxin11A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200924_toxin11A",
                                              design = T,
-                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1601929267_update.RData") %>%
+                                             rdafile = "CellProfiler-Analysis_20200924_toxin11A_data_1602696342SJW.RData") %>%
   dplyr::filter(Worm_Length > 50) %>%
   easyXpress::modelSelection(.) %>%
   easyXpress::edgeFlag(.) %>%
@@ -1051,6 +1086,8 @@ silver.df <- Reduce(rbind,silver) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- silver.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1066,6 +1103,7 @@ silverH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = silverH2)
+se.DR(silver.df[[1]])
 ```
 
 ## Cadmium dichloride
@@ -1080,6 +1118,8 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2","toxin14A_1","toxin14A_3")) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- cadmium.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1096,6 +1136,7 @@ cadmiumH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = cadmiumH2)
+se.DR(cadmium.df[[1]])
 ```
 
 ## Copper (II) dichloride
@@ -1112,6 +1153,8 @@ copper.df <- Reduce(rbind,copper) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- copper.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1127,6 +1170,7 @@ copperH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = copperH2)
+se.DR(copper.df[[1]])
 ```
 
 ## Nickel dichloride
@@ -1142,6 +1186,8 @@ nickel.df <- Reduce(rbind,nickel) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!assay_bleach %in% c("toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- nickel.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1159,6 +1205,7 @@ nickelH2 <- purrr::map2(drug.data.nested.reps$data,
             drugHeritability)
 
 H2.plot(H2.out = nickelH2)
+se.DR(nickel.df[[1]])
 ```
 
 ## Paraquat
@@ -1175,6 +1222,8 @@ paraquat.df <- Reduce(rbind,paraquat) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- paraquat.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1190,6 +1239,7 @@ paraquatH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = paraquatH2)
+se.DR(paraquat.df[[1]])
 
 ```
 
@@ -1207,6 +1257,8 @@ zinc.df <- Reduce(rbind,zinc) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- zinc.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1222,6 +1274,7 @@ zincH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = zincH2)
+se.DR(zinc.df[[1]])
 ```
 
 ## Pyraclostrobin
@@ -1238,6 +1291,8 @@ pyraclostrobin.df <- Reduce(rbind,pyraclostrobin) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_1","toxin15B_2")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- pyraclostrobin.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1253,7 +1308,7 @@ pyraclostrobinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = pyraclostrobinH2)
-
+se.DR(pyraclostrobin.df[[1]])
 
 ```
 
@@ -1271,6 +1326,8 @@ aldicarb.df <- Reduce(rbind,aldicarb) %>%
   dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- aldicarb.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1286,6 +1343,7 @@ aldicarbH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = aldicarbH2)
+se.DR(aldicarb.df[[1]])
 ```
 
 ## Chlorfenapyr
@@ -1302,6 +1360,8 @@ chlorfenapyr.df <- Reduce(rbind,chlorfenapyr) %>%
   dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- chlorfenapyr.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1317,6 +1377,7 @@ chlorfenapyrH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = chlorfenapyrH2)
+se.DR(chlorfenapyr.df[[1]])
 ```
 
 ## Methomyl
@@ -1333,6 +1394,8 @@ methomyl.df <- Reduce(rbind,methomyl) %>%
   dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1","toxin14B_1")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- methomyl.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1348,6 +1411,7 @@ methomylH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = methomylH2)
+se.DR(methomyl.df[[1]])
 ```
 
 ## Methylmercury dichloride
@@ -1364,6 +1428,7 @@ methyl.mercury.df <- Reduce(rbind,methyl.mercury) %>%
   dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1")) %>%
   cleanData(.)
 
+
 drug.data.nested <- methyl.mercury.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1379,6 +1444,7 @@ mercuryH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = mercuryH2)
+se.DR(methyl.mercury.df[[1]])
 ```
 
 ## Triphenyl phosphate
@@ -1395,6 +1461,8 @@ tpp.df <- Reduce(rbind,tpp) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
 
+
+
 drug.data.nested <- tpp.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1410,6 +1478,7 @@ tppH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = tppH2)
+se.DR(tpp.df[[1]])
 ```
 
 ## Arsenic trioxide
@@ -1421,6 +1490,8 @@ arsenic.df <- Reduce(rbind,arsenic) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- arsenic.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1437,6 +1508,7 @@ arsenicH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = arsenicH2)
+se.DR(arsenic.df[[1]])
 ```
 
 ## Carbaryl
@@ -1448,6 +1520,8 @@ carbaryl.df <- Reduce(rbind,carbaryl) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- carbaryl.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1464,6 +1538,7 @@ carbarylH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = carbarylH2)
+se.DR(carbaryl.df[[1]])
 ```
 
 ## Carboxin
@@ -1475,6 +1550,8 @@ carboxin.df <- Reduce(rbind,carboxin) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- carboxin.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1491,6 +1568,7 @@ carboxinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = carboxinH2)
+se.DR(carboxin.df[[1]])
 ```
 
 ## Chlorpyrifos
@@ -1504,6 +1582,8 @@ chlorpyrifos.df <- Reduce(rbind,chlorpyrifos) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!Metadata_Experiment %in% c("toxin17A")) %>% 
   cleanData(.)
+
+
 
 drug.data.nested <- chlorpyrifos.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1520,6 +1600,7 @@ chlorpyrifosH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = chlorpyrifosH2)
+se.DR(chlorpyrifos.df[[1]])
 ```
 
 ## Lead (II) nitrate
@@ -1531,6 +1612,8 @@ lead.df <- Reduce(rbind,lead) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- lead.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1548,6 +1631,7 @@ leadH2 <- purrr::map2(drug.data.nested.reps$data,
             drugHeritability)
 
 H2.plot(H2.out = leadH2)
+se.DR(lead.df[[1]])
 ```
 
 ## Atrazine
@@ -1559,6 +1643,8 @@ atrazine.df <- Reduce(rbind,atrazine) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- atrazine.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1575,6 +1661,7 @@ atrazineH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = atrazineH2)
+se.DR(atrazine.df[[1]])
 ```
 
 ## 2,4-D
@@ -1586,6 +1673,8 @@ x2.4.D.df <- Reduce(rbind,x2.4.D) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- x2.4.D.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1602,6 +1691,7 @@ x2.4.DH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = x2.4.DH2)
+se.DR(x2.4.D.df[[1]])
 ```
 
 ## Malathion
@@ -1613,6 +1703,8 @@ malathion.df <- Reduce(rbind,malathion) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- malathion.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1629,6 +1721,7 @@ malathionH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = malathionH2)
+se.DR(malathion.df[[1]])
 ```
 
 ## Chlorothalonil
@@ -1640,6 +1733,8 @@ chlorothalonil.df <- Reduce(rbind,chlorothalonil) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- chlorothalonil.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1656,6 +1751,7 @@ chlorothalonilH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = chlorothalonilH2)
+se.DR(chlorothalonil.df[[1]])
 ```
 
 ## Deltamethrin
@@ -1667,6 +1763,8 @@ deltamethrin.df <- Reduce(rbind,deltamethrin) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- deltamethrin.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1683,6 +1781,7 @@ deltamethrinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = deltamethrinH2)
+se.DR(deltamethrin.df[[1]])
 ```
 
 ## Manganese dichloride
@@ -1694,6 +1793,8 @@ manganese.df <- Reduce(rbind,manganese) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- manganese.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1710,6 +1811,7 @@ manganeseH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = manganeseH2)
+se.DR(manganese.df[[1]])
 ```
 
 ## Propoxur
@@ -1721,6 +1823,8 @@ propoxur.df <- Reduce(rbind,propoxur) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
+
+
 
 drug.data.nested <- propoxur.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1737,6 +1841,7 @@ propoxurH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = propoxurH2)
+se.DR(propoxur.df[[1]])
 ```
 
 ## Mancozeb
@@ -1748,6 +1853,8 @@ mancozeb.df <- Reduce(rbind,mancozeb) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1, drug != "Mancozeb_Dilute") %>%
   cleanData(.)
+
+
 
 drug.data.nested <- mancozeb.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
@@ -1764,6 +1871,7 @@ mancozebH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = mancozebH2)
+se.DR(mancozeb.df[[1]])
 ```
 
 ```{r Summary, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}

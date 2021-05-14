@@ -319,6 +319,7 @@ processed.toxin01A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpres
   easyXpress::edgeFlag(.) %>%
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
 processed.toxin01B <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20200131_toxin01B", 
                                              design = T, 
                                              rdafile = "CellProfiler-Analysis_20200131_toxin01B_data_1602948785SJW.RData") %>%

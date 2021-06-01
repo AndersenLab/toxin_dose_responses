@@ -1099,7 +1099,7 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2","toxin14A_1","toxin14A_3")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 
 
@@ -1167,7 +1167,7 @@ nickel.df <- Reduce(rbind,nickel) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%## from combining 9,10,11
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin11A_1","toxin15A_1")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
 
 
@@ -1271,7 +1271,7 @@ pyraclostrobin.df <- Reduce(rbind,pyraclostrobin) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_1","toxin15B_2")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_2")) %>%
   cleanData(.)
 
 
@@ -1340,7 +1340,7 @@ chlorfenapyr.df <- Reduce(rbind,chlorfenapyr) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin10A_1","toxin11A_1","toxin15B_1")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
 
 
@@ -1802,7 +1802,7 @@ se.DR(manganese.df[[1]])
 propoxur <- purrr::map2(MDHD.data.list, 
                    "Propoxur",
                    pull.toxin)
-propoxur.df <- Reduce(rbind,propoxur)
+propoxur.df <- Reduce(rbind,propoxur) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
   cleanData(.)
@@ -1951,87 +1951,85 @@ H2.pheno.rankings <- function(drug, data, clean.drug.phenos){
 for(k in 1:length(clean.drug.phenos)){
   print(k)
   print(c(topH2.nested$drug[[k]], clean.drug.phenos[[k]]))
-  H2.pheno.rankings(drug = topH2.nested$drug[[k]], data = topH2.nested$data[[k]], clean.drug.phenos = clean.drug.phenos[[k]])
+  H2.pheno.rankings(drug = topH2.nested$drug[[k]], 
+                    data = topH2.nested$data[[k]], 
+                    clean.drug.phenos = clean.drug.phenos[[k]])
 }
 
 
-pq.dose.cor <- top.H2.summary %>%
-  dplyr::filter(drug == "Paraquat") %>%
-  dplyr::filter(concentration_um %in% c(62.5, 250)) %>%
-  dplyr::left_join(., paraquat.df[[1]]) %>%
-  dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg)
-
-pq.norm <- pq.dose.cor %>%
-  dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
-  dplyr::group_by(concentration_um) %>%
-  dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
-  dplyr::full_join(pq.dose.cor,.) %>%
-  dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
-
-ggplot(pq.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
-  theme_bw() + 
-  geom_boxplot(position = position_dodge(1)) + 
-  stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
-  scale_fill_manual(values = strain_colors)+ 
-  scale_colour_manual(values = strain_colors) + 
-  facet_grid(.~strain)
-
-summary(lm(data = pq.norm, formula = norm ~ concentration_um * strain))
-
-
-
-
-carboxin.dose.cor <- top.H2.summary %>%
-  dplyr::filter(drug == "Carboxin") %>%
-  dplyr::filter(concentration_um %in% c(700.3, 910.3)) %>%
-  dplyr::left_join(., carboxin.df[[1]]) %>%
-  dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg)
-
-carboxin.norm <- carboxin.dose.cor %>%
-  dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
-  dplyr::group_by(concentration_um) %>%
-  dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
-  dplyr::full_join(carboxin.dose.cor,.) %>%
-  dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
-
-ggplot(carboxin.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
-  theme_bw() + 
-  geom_boxplot(position = position_dodge(1)) + 
-  stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
-  scale_fill_manual(values = strain_colors)+ 
-  scale_colour_manual(values = strain_colors) + 
-  facet_grid(.~strain)
-
-summary(lm(data = carboxin.norm, formula = norm ~ concentration_um * strain))
-
-
-propoxur.dose.cor <- top.H2.summary %>%
-  dplyr::filter(drug == "Propoxur") %>%
-  dplyr::filter(concentration_um %in% c(195.1, 987.6)) %>%
-  dplyr::left_join(., propoxur.df[[1]]) %>% View
-  dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg) %>%
-  dplyr::filter(!is.na(median_wormlength_um_reg))
-
-propoxur.norm <- propoxur.dose.cor %>%
-  dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
-  dplyr::group_by(concentration_um) %>%
-  dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
-  dplyr::full_join(propoxur.dose.cor,.) %>%
-  dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
-
-ggplot(propoxur.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
-  theme_bw() + 
-  geom_boxplot(position = position_dodge(1)) + 
-  stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
-  scale_fill_manual(values = strain_colors)+ 
-  scale_colour_manual(values = strain_colors) + 
-  facet_grid(.~strain)
-
-summary(lm(data = propoxur.norm, formula = norm ~ concentration_um * strain))
-
-
-
-
+# pq.dose.cor <- top.H2.summary %>%
+#   dplyr::filter(drug == "Paraquat") %>%
+#   dplyr::filter(concentration_um %in% c(62.5, 250)) %>%
+#   dplyr::left_join(., paraquat.df[[1]]) %>%
+#   dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg)
+# 
+# pq.norm <- pq.dose.cor %>%
+#   dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
+#   dplyr::group_by(concentration_um) %>%
+#   dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
+#   dplyr::full_join(pq.dose.cor,.) %>%
+#   dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
+# 
+# ggplot(pq.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
+#   theme_bw() + 
+#   geom_boxplot(position = position_dodge(1)) + 
+#   stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
+#   scale_fill_manual(values = strain_colors)+ 
+#   scale_colour_manual(values = strain_colors) + 
+#   facet_grid(.~strain)
+# 
+# summary(lm(data = pq.norm, formula = norm ~ concentration_um * strain))
+# 
+# 
+# 
+# 
+# carboxin.dose.cor <- top.H2.summary %>%
+#   dplyr::filter(drug == "Carboxin") %>%
+#   dplyr::filter(concentration_um %in% c(700.3, 910.3)) %>%
+#   dplyr::left_join(., carboxin.df[[1]]) %>%
+#   dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg)
+# 
+# carboxin.norm <- carboxin.dose.cor %>%
+#   dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
+#   dplyr::group_by(concentration_um) %>%
+#   dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
+#   dplyr::full_join(carboxin.dose.cor,.) %>%
+#   dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
+# 
+# ggplot(carboxin.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
+#   theme_bw() + 
+#   geom_boxplot(position = position_dodge(1)) + 
+#   stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
+#   scale_fill_manual(values = strain_colors)+ 
+#   scale_colour_manual(values = strain_colors) + 
+#   facet_grid(.~strain)
+# 
+# summary(lm(data = carboxin.norm, formula = norm ~ concentration_um * strain))
+# 
+# 
+# propoxur.dose.cor <- top.H2.summary %>%
+#   dplyr::filter(drug == "Propoxur") %>%
+#   dplyr::filter(concentration_um %in% c(195.1, 987.6)) %>%
+#   dplyr::left_join(., propoxur.df[[1]]) %>% View
+#   dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg) %>%
+#   dplyr::filter(!is.na(median_wormlength_um_reg))
+# 
+# propoxur.norm <- propoxur.dose.cor %>%
+#   dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
+#   dplyr::group_by(concentration_um) %>%
+#   dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
+#   dplyr::full_join(propoxur.dose.cor,.) %>%
+#   dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
+# 
+# ggplot(propoxur.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
+#   theme_bw() + 
+#   geom_boxplot(position = position_dodge(1)) + 
+#   stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
+#   scale_fill_manual(values = strain_colors)+ 
+#   scale_colour_manual(values = strain_colors) + 
+#   facet_grid(.~strain)
+# 
+# summary(lm(data = propoxur.norm, formula = norm ~ concentration_um * strain))
 
 ```
 

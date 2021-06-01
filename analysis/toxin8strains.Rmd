@@ -2434,7 +2434,7 @@ EC10.plot(e = mancozeb.selected.EC.estimates, d = mancozeb.df)
 
 
 ## EC Estimates
-```{r DRC metrics, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r DRC metrics, echo=FALSE, message=FALSE, warning=FALSE}
 drug.pal <- c(brewer.pal(n = 9,name = "Set1"), brewer.pal(n = 8, "Set2"), brewer.pal(n = 8, "Set3"))
 drug.classes <- read.csv("data/drugclasses.csv") %>%
   dplyr::select(c(drug, class)) %>%
@@ -2484,33 +2484,33 @@ levels(selected.EC.est.dat$above.max.conc) <- c("EC Estimate Within Dose Range",
 #   labs(x = "Toxicant",
 #        y = "Number of Dose-Response Curve Fits")
 
-selected.EC.est.dat %>%
-  dplyr::group_by(null.estimate, fraction, Strain, drug, best.model) %>%
-  dplyr::summarise(n()) %>%
-  ggplot(., mapping = aes(x = drug, y = `n()`, fill = Strain)) + 
-  theme_bw() + 
-  geom_col(position = "stack") +
-  scale_fill_manual(name = "Strain", values = strain_colors) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  facet_grid(fraction~null.estimate+best.model, drop = TRUE, scales = "free_x") + 
-  labs(x = "Toxicant",
-       y = "Number of Dose-Response Curve Fits")
-
-
-selected.EC.est.dat %>%
-  dplyr::group_by(above.max.conc, fraction, model, Strain, drug) %>%
-  dplyr::filter(model == "Log-Logistic",
-                fraction == "EC10") %>%
-  dplyr::summarise(n()) %>%
-  ggplot(., mapping = aes(x = drug, y = `n()`, fill = Strain)) + 
-  theme_bw() + 
-  geom_col(position = "stack") +
-  scale_fill_manual(name = "Strain", values = strain_colors) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  facet_wrap(.~above.max.conc, drop = TRUE, scales = "free_x", nrow = 3) + 
-  labs(x = "Toxicant",
-       y = "Number of Dose-Response Curve Fits: EC10") +
-  ggsave("output/EC10.survey.png", width = 10, height = 8)
+# selected.EC.est.dat %>%
+#   dplyr::group_by(null.estimate, fraction, Strain, drug, best.model) %>%
+#   dplyr::summarise(n()) %>%
+#   ggplot(., mapping = aes(x = drug, y = `n()`, fill = Strain)) + 
+#   theme_bw() + 
+#   geom_col(position = "stack") +
+#   scale_fill_manual(name = "Strain", values = strain_colors) + 
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+#   facet_grid(fraction~null.estimate+best.model, drop = TRUE, scales = "free_x") + 
+#   labs(x = "Toxicant",
+#        y = "Number of Dose-Response Curve Fits")
+# 
+# 
+# selected.EC.est.dat %>%
+#   dplyr::group_by(above.max.conc, fraction, model, Strain, drug) %>%
+#   dplyr::filter(model == "Log-Logistic",
+#                 fraction == "EC10") %>%
+#   dplyr::summarise(n()) %>%
+#   ggplot(., mapping = aes(x = drug, y = `n()`, fill = Strain)) + 
+#   theme_bw() + 
+#   geom_col(position = "stack") +
+#   scale_fill_manual(name = "Strain", values = strain_colors) + 
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+#   facet_wrap(.~above.max.conc, drop = TRUE, scales = "free_x", nrow = 3) + 
+#   labs(x = "Toxicant",
+#        y = "Number of Dose-Response Curve Fits: EC10") +
+#   ggsave("output/EC10.survey.png", width = 10, height = 8)
 
 ```
 

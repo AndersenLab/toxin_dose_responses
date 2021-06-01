@@ -1256,17 +1256,46 @@ data.cleaning.plot <- function(data, title){
   labs(x = "Strain", y = "Experimental Retention (% of Expected Wells)")
 }
 EC10.plot <- function(e, d){
-  e %>%
+  max.EC10 <- e %>%
     dplyr::filter(fraction == "EC10") %>%
-    ggplot(., mapping = aes(x = strain, y = Estimate, colour = strain)) + 
-    theme_bw() +
-    geom_pointrange(aes(ymin=Lower, ymax=Upper)) +
-    geom_text_repel(aes(label = round(Estimate, 2)), size = 3, box.padding = 0.5, colour = "black") +
-    geom_text_repel(aes(label = best.model), size = 3, box.padding = 2, colour = "black") +
-    scale_y_log10() +
-    geom_hline(yintercept = max(d[[1]]$concentration_um), linetype = 2, colour = "grey") + 
-    scale_colour_manual(values = strain_colors, name = "Strain") + 
-    labs(y = "EC10", x = "Strain")
+    dplyr::select(Estimate, `Std. Error`) %>%
+    dplyr::mutate(max.value = Estimate + `Std. Error`) %>%
+    dplyr::filter(max.value == max(max.value)) %>%
+    dplyr::select(max.value) %>% as.numeric()
+  
+  
+  if(max(d[[1]]$concentration_um) < max.EC10){
+    e %>%
+      dplyr::mutate(label = paste0(best.model,"; ",round(Estimate, 2)," µM")) %>%
+      dplyr::filter(fraction == "EC10") %>%
+      ggplot(., mapping = aes(x = strain, y = Estimate, colour = strain)) + 
+      theme_bw() +
+      geom_pointrange(aes(ymin=Lower, ymax=Upper)) +
+      # geom_text_repel(aes(label = round(Estimate, 2)), size = 3, box.padding = 0.5, colour = "black") +
+      # geom_text_repel(aes(label = best.model), size = 3, box.padding = 2, colour = "black") +
+      geom_text_repel(aes(label = label), size = 3, box.padding = 2, colour = "black") +
+      scale_y_log10() +
+      geom_hline(yintercept = max(d[[1]]$concentration_um), linetype = 2, colour = "grey") + 
+      scale_colour_manual(values = strain_colors, name = "Strain") + 
+      labs(y = "EC10", x = "Strain")
+  } else {
+    e %>%
+      dplyr::mutate(label = paste0(best.model,"; ",round(Estimate, 2)," µM")) %>%
+      dplyr::filter(fraction == "EC10") %>%
+      ggplot(., mapping = aes(x = strain, y = Estimate, colour = strain)) + 
+      theme_bw() +
+      geom_pointrange(aes(ymin=Lower, ymax=Upper)) +
+      # geom_text_repel(aes(label = round(Estimate, 2)), size = 3, box.padding = 0.5, colour = "black") +
+      # geom_text_repel(aes(label = best.model), size = 3, box.padding = 2, colour = "black") +
+      geom_text_repel(aes(label = label), size = 3, box.padding = 2, colour = "black") +
+      scale_y_log10(limits = c(unique(d[[1]]$concentration_um)[2],
+                               max(d[[1]]$concentration_um))) +
+      scale_colour_manual(values = strain_colors, name = "Strain") + 
+      labs(y = "EC10", x = "Strain")
+    
+    
+  }
+
 }
 ```
 
@@ -1450,21 +1479,22 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2","toxin14A_1","toxin14A_3")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 data.cleaning.plot(cadmium.df[[2]], "Bleach Quality: Filtered")
 dose.check.plot(cadmium.df[[1]])
-drug.drm <- suppressMessages(fit_all_models(data = cadmium.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
 
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(cadmium.df[[1]]$drug)), 
-                  metadata = cadmium.df[[1]])
-Cadmium_dichloride_DRCplot +
-  ggplot2::labs(subtitle = "LL4 Model")
-cadmium.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = cadmium.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = cadmium.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# 
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(cadmium.df[[1]]$drug)), 
+#                   metadata = cadmium.df[[1]])
+# Cadmium_dichloride_DRCplot +
+#   ggplot2::labs(subtitle = "LL4 Model")
+# cadmium.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = cadmium.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 
 ### Best model from model selection
@@ -1495,16 +1525,17 @@ copper.df <- Reduce(rbind,copper) %>%
 
 data.cleaning.plot(copper.df[[2]], "Bleach Quality")
 dose.check.plot(copper.df[[1]])
-drug.drm <- suppressMessages(fit_all_models(data = copper.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(copper.df[[1]]$drug)), 
-                  metadata = copper.df[[1]])
-`Copper(II)_chloride_DRCplot`+
-  ggplot2::labs(subtitle = "LL4 Model")
-copper.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = copper.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+
+# drug.drm <- suppressMessages(fit_all_models(data = copper.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(copper.df[[1]]$drug)), 
+#                   metadata = copper.df[[1]])
+# `Copper(II)_chloride_DRCplot`+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# copper.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = copper.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = copper.df[[1]], 
@@ -1536,17 +1567,17 @@ nickel.df <- Reduce(rbind,nickel) %>%
 data.cleaning.plot(nickel.df[[2]], "Bleach Quality")
 dose.check.plot(nickel.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = nickel.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(nickel.df[[1]]$drug)), 
-                  metadata = nickel.df[[1]])
-
-Nickel_dichloride_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-nickel.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = nickel.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = nickel.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(nickel.df[[1]]$drug)), 
+#                   metadata = nickel.df[[1]])
+# 
+# Nickel_dichloride_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# nickel.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = nickel.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 
 ### Best model from model selection
@@ -1577,18 +1608,18 @@ paraquat.df <- Reduce(rbind,paraquat) %>%
 data.cleaning.plot(paraquat.df[[2]], "Bleach Quality")
 dose.check.plot(paraquat.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = paraquat.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(paraquat.df[[1]]$drug)), 
-                  metadata = paraquat.df[[1]])
-
-Paraquat_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-paraquat.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = paraquat.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = paraquat.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# 
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(paraquat.df[[1]]$drug)), 
+#                   metadata = paraquat.df[[1]])
+# 
+# Paraquat_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# paraquat.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = paraquat.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 
 ### Best model from model selection
@@ -1601,6 +1632,7 @@ Paraquat_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 paraquat.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = paraquat.df[[1]])
+EC10.plot(e = paraquat.selected.EC.estimates, d = paraquat.df)
 
 ```
 
@@ -1618,18 +1650,18 @@ zinc.df <- Reduce(rbind,zinc) %>%
   cleanData(.)
 data.cleaning.plot(zinc.df[[2]], "Bleach Quality")
 dose.check.plot(zinc.df[[1]])
+# 
+# drug.drm <- suppressMessages(fit_all_models(data = zinc.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(zinc.df[[1]]$drug)), 
+#                   metadata = zinc.df[[1]])
+# Zinc_dichloride_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
 
-drug.drm <- suppressMessages(fit_all_models(data = zinc.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(zinc.df[[1]]$drug)), 
-                  metadata = zinc.df[[1]])
-Zinc_dichloride_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-
-zinc.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = zinc.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# zinc.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = zinc.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = zinc.df[[1]], 
@@ -1641,6 +1673,7 @@ Zinc_dichloride_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 zinc.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = zinc.df[[1]])
+EC10.plot(e = zinc.selected.EC.estimates, d = zinc.df)
 ```
 
 ## Pyraclostrobin
@@ -1654,21 +1687,22 @@ pyraclostrobin.df <- Reduce(rbind,pyraclostrobin) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_1","toxin15B_2")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15B_2")) %>%
   cleanData(.)
 data.cleaning.plot(pyraclostrobin.df[[2]], "Bleach Quality")
 dose.check.plot(pyraclostrobin.df[[1]])
-drug.drm <- suppressMessages(fit_all_models(data = pyraclostrobin.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(pyraclostrobin.df[[1]]$drug)), 
-                  metadata = pyraclostrobin.df[[1]])
 
-Pyraclostrobin_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-pyraclostrobin.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = pyraclostrobin.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = pyraclostrobin.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(pyraclostrobin.df[[1]]$drug)), 
+#                   metadata = pyraclostrobin.df[[1]])
+# 
+# Pyraclostrobin_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# pyraclostrobin.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = pyraclostrobin.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = pyraclostrobin.df[[1]], 
@@ -1680,6 +1714,7 @@ Pyraclostrobin_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 pyraclostrobin.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = pyraclostrobin.df[[1]])
+EC10.plot(e = pyraclostrobin.selected.EC.estimates, d = pyraclostrobin.df)
 ```
 
 ## Aldicarb
@@ -1697,17 +1732,17 @@ aldicarb.df <- Reduce(rbind,aldicarb) %>%
 data.cleaning.plot(aldicarb.df[[2]], "Bleach Quality")
 dose.check.plot(aldicarb.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = aldicarb.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(aldicarb.df[[1]]$drug)), 
-                  metadata = aldicarb.df[[1]])
-
-Aldicarb_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-aldicarb.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = aldicarb.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = aldicarb.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(aldicarb.df[[1]]$drug)), 
+#                   metadata = aldicarb.df[[1]])
+# 
+# Aldicarb_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# aldicarb.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = aldicarb.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = aldicarb.df[[1]], 
@@ -1738,17 +1773,17 @@ chlorfenapyr.df <- Reduce(rbind,chlorfenapyr) %>%
 data.cleaning.plot(chlorfenapyr.df[[2]], "Bleach Quality")
 dose.check.plot(chlorfenapyr.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = chlorfenapyr.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(chlorfenapyr.df[[1]]$drug)), 
-                  metadata = chlorfenapyr.df[[1]])
-Chlorfenapyr_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-
-chlorfenapyr.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = chlorfenapyr.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = chlorfenapyr.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(chlorfenapyr.df[[1]]$drug)), 
+#                   metadata = chlorfenapyr.df[[1]])
+# Chlorfenapyr_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# 
+# chlorfenapyr.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = chlorfenapyr.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = chlorfenapyr.df[[1]], 
@@ -1760,6 +1795,7 @@ Chlorfenapyr_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 chlorfenapyr.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = chlorfenapyr.df[[1]])
+EC10.plot(e = chlorfenapyr.selected.EC.estimates, d = chlorfenapyr.df)
 ```
 
 ## Methomyl
@@ -1780,15 +1816,15 @@ dose.check.plot(methomyl.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = methomyl.df[[1]], 
                                             traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(methomyl.df[[1]]$drug)), 
-                  metadata = methomyl.df[[1]])
-Methomyl_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-
-methomyl.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = methomyl.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(methomyl.df[[1]]$drug)), 
+#                   metadata = methomyl.df[[1]])
+# Methomyl_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# 
+# methomyl.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = methomyl.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = methomyl.df[[1]], 
@@ -1800,7 +1836,7 @@ Methomyl_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 methomyl.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = methomyl.df[[1]])
-
+EC10.plot(e = methomyl.selected.EC.estimates, d = methomyl.df)
 ```
 
 ## Methyl Mercury
@@ -1819,16 +1855,16 @@ methyl.mercury.df <- Reduce(rbind,methyl.mercury) %>%
 data.cleaning.plot(methyl.mercury.df[[2]], "Bleach Quality")
 dose.check.plot(methyl.mercury.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = methyl.mercury.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(methyl.mercury.df[[1]]$drug)), 
-                  metadata = methyl.mercury.df[[1]])
-Methylmercury_dichloride_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-methyl.mercury.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = methyl.mercury.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = methyl.mercury.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(methyl.mercury.df[[1]]$drug)), 
+#                   metadata = methyl.mercury.df[[1]])
+# Methylmercury_dichloride_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# methyl.mercury.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = methyl.mercury.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = methyl.mercury.df[[1]], 
@@ -1840,6 +1876,7 @@ Methylmercury_dichloride_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 methyl.mercury.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = methyl.mercury.df[[1]])
+EC10.plot(e = methyl.mercury.selected.EC.estimates, d = methyl.mercury.df)
 ```
 
 ## Triphenyl phosphate
@@ -1858,16 +1895,16 @@ tpp.df <- Reduce(rbind,tpp) %>%
 data.cleaning.plot(tpp.df[[2]], "Bleach Quality")
 dose.check.plot(tpp.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = tpp.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(tpp.df[[1]]$drug)), 
-                  metadata = tpp.df[[1]])
-Triphenyl_phosphate_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-tpp.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = tpp.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = tpp.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(tpp.df[[1]]$drug)), 
+#                   metadata = tpp.df[[1]])
+# Triphenyl_phosphate_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# tpp.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = tpp.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = tpp.df[[1]], 
@@ -1879,6 +1916,7 @@ Triphenyl_phosphate_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 tpp.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = tpp.df[[1]])
+EC10.plot(e = tpp.selected.EC.estimates, d = tpp.df)
 ```
 
 ## Arsenic trioxide
@@ -1894,16 +1932,16 @@ arsenic.df <- Reduce(rbind,arsenic) %>%
 data.cleaning.plot(arsenic.df[[2]], "Bleach Quality")
 dose.check.plot(arsenic.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = arsenic.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(arsenic.df[[1]]$drug)), 
-                  metadata = arsenic.df[[1]])
-Arsenic_trioxide_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-arsenic.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = arsenic.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = arsenic.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(arsenic.df[[1]]$drug)), 
+#                   metadata = arsenic.df[[1]])
+# Arsenic_trioxide_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# arsenic.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = arsenic.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = arsenic.df[[1]], 
@@ -1915,6 +1953,7 @@ Arsenic_trioxide_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 arsenic.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = arsenic.df[[1]])
+EC10.plot(e = arsenic.selected.EC.estimates, d = arsenic.df)
 ```
 
 ## Carbaryl
@@ -1931,16 +1970,16 @@ carbaryl.df <- Reduce(rbind,carbaryl) %>%
 data.cleaning.plot(carbaryl.df[[2]], "Bleach Quality")
 dose.check.plot(carbaryl.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = carbaryl.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(carbaryl.df[[1]]$drug)), 
-                  metadata = carbaryl.df[[1]])
-Carbaryl_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-carbaryl.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = carbaryl.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = carbaryl.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(carbaryl.df[[1]]$drug)), 
+#                   metadata = carbaryl.df[[1]])
+# Carbaryl_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# carbaryl.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = carbaryl.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = carbaryl.df[[1]], 
@@ -1952,6 +1991,7 @@ Carbaryl_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 carbaryl.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = carbaryl.df[[1]])
+EC10.plot(e = carbaryl.selected.EC.estimates, d = carbaryl.df)
 ```
 
 ## Carboxin
@@ -1967,16 +2007,16 @@ carboxin.df <- Reduce(rbind,carboxin) %>%
 data.cleaning.plot(carboxin.df[[2]], "Bleach Quality")
 dose.check.plot(carboxin.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = carboxin.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(carboxin.df[[1]]$drug)), 
-                  metadata = carboxin.df[[1]])
-Carboxin_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-carboxin.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = carboxin.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = carboxin.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(carboxin.df[[1]]$drug)), 
+#                   metadata = carboxin.df[[1]])
+# Carboxin_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# carboxin.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = carboxin.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = carboxin.df[[1]], 
@@ -1989,6 +2029,7 @@ Carboxin_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 carboxin.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                                                         drug.df = carboxin.df[[1]])
+EC10.plot(e = carboxin.selected.EC.estimates, d = carboxin.df)
 ```
 
 ## Chlorpyrifos
@@ -2007,16 +2048,16 @@ chlorpyrifos.df <- Reduce(rbind,chlorpyrifos) %>%
 data.cleaning.plot(chlorpyrifos.df[[2]], "Bleach Quality")
 dose.check.plot(chlorpyrifos.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = chlorpyrifos.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(chlorpyrifos.df[[1]]$drug)), 
-                  metadata = chlorpyrifos.df[[1]])
-Chlorpyrifos_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-chlorpyrifos.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = chlorpyrifos.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = chlorpyrifos.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(chlorpyrifos.df[[1]]$drug)), 
+#                   metadata = chlorpyrifos.df[[1]])
+# Chlorpyrifos_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# chlorpyrifos.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = chlorpyrifos.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = chlorpyrifos.df[[1]], 
@@ -2028,6 +2069,7 @@ Chlorpyrifos_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 chlorpyrifos.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = chlorpyrifos.df[[1]])
+EC10.plot(e = chlorpyrifos.selected.EC.estimates, d = chlorpyrifos.df)
 ```
 
 ## Lead (II) nitrate
@@ -2043,16 +2085,16 @@ lead.df <- Reduce(rbind,lead) %>%
 data.cleaning.plot(lead.df[[2]], "Bleach Quality")
 dose.check.plot(lead.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = lead.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(lead.df[[1]]$drug)), 
-                  metadata = lead.df[[1]])
-`Lead(II)_nitrate_DRCplot`+
-  ggplot2::labs(subtitle = "LL4 Model")
-lead.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = lead.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = lead.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(lead.df[[1]]$drug)), 
+#                   metadata = lead.df[[1]])
+# `Lead(II)_nitrate_DRCplot`+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# lead.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = lead.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = lead.df[[1]], 
@@ -2064,6 +2106,7 @@ plot_best_DRC(all.model.list = best.drug.drm,
   ggplot2::labs(subtitle = "Selected Models")
 lead.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = lead.df[[1]])
+EC10.plot(e = lead.selected.EC.estimates, d = lead.df)
 ```
 
 ## Atrazine
@@ -2082,16 +2125,16 @@ atrazine.df <- Reduce(rbind,atrazine) %>%
 data.cleaning.plot(atrazine.df[[2]], "Bleach Quality")
 dose.check.plot(atrazine.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = atrazine.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(atrazine.df[[1]]$drug)), 
-                  metadata = atrazine.df[[1]])
-Atrazine_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-atrazine.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = atrazine.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = atrazine.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(atrazine.df[[1]]$drug)), 
+#                   metadata = atrazine.df[[1]])
+# Atrazine_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# atrazine.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = atrazine.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = atrazine.df[[1]], 
@@ -2103,6 +2146,7 @@ Atrazine_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 atrazine.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = atrazine.df[[1]])
+EC10.plot(e = atrazine.selected.EC.estimates, d = atrazine.df)
 ```
 
 ## 2,4-D
@@ -2119,16 +2163,16 @@ x2.4.D.df <- Reduce(rbind,x2.4.D) %>%
 data.cleaning.plot(x2.4.D.df[[2]], "Bleach Quality")
 dose.check.plot(x2.4.D.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = x2.4.D.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(x2.4.D.df[[1]]$drug)), 
-                  metadata = x2.4.D.df[[1]])
-`2,4-D_DRCplot`+
-  ggplot2::labs(subtitle = "LL4 Model")
-x2.4.D.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = x2.4.D.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = x2.4.D.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(x2.4.D.df[[1]]$drug)), 
+#                   metadata = x2.4.D.df[[1]])
+# `2,4-D_DRCplot`+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# x2.4.D.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = x2.4.D.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = x2.4.D.df[[1]], 
@@ -2140,6 +2184,7 @@ plot_best_DRC(all.model.list = best.drug.drm,
   ggplot2::labs(subtitle = "Selected Models")
 x2.4.D.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = x2.4.D.df[[1]])
+EC10.plot(e = x2.4.D.selected.EC.estimates, d = x2.4.D.df)
 ```
 
 ## Malathion
@@ -2156,16 +2201,16 @@ malathion.df <- Reduce(rbind,malathion) %>%
 data.cleaning.plot(malathion.df[[2]], "Bleach Quality")
 dose.check.plot(malathion.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = malathion.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(malathion.df[[1]]$drug)), 
-                  metadata = malathion.df[[1]])
-Malathion_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-malathion.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = malathion.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = malathion.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(malathion.df[[1]]$drug)), 
+#                   metadata = malathion.df[[1]])
+# Malathion_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# malathion.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = malathion.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 ### Best model from model selection
 best.drug.drm <- suppressMessages(fit_best_models(data = malathion.df[[1]], 
@@ -2177,6 +2222,7 @@ Malathion_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 malathion.df.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = malathion.df[[1]])
+EC10.plot(e = malathion.df.selected.EC.estimates, d = malathion.df)
 ```
 
 ## Chlorothalonil
@@ -2193,16 +2239,16 @@ chlorothalonil.df <- Reduce(rbind,chlorothalonil) %>%
 data.cleaning.plot(chlorothalonil.df[[2]], "Bleach Quality")
 dose.check.plot(chlorothalonil.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = chlorothalonil.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(chlorothalonil.df[[1]]$drug)), 
-                  metadata = chlorothalonil.df[[1]])
-Chlorothalonil_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-chlorothalonil.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = chlorothalonil.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = chlorothalonil.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(chlorothalonil.df[[1]]$drug)), 
+#                   metadata = chlorothalonil.df[[1]])
+# Chlorothalonil_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# chlorothalonil.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = chlorothalonil.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 
 ### Best model from model selection
@@ -2215,6 +2261,7 @@ Chlorothalonil_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 chlorothalonil.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = chlorothalonil.df[[1]])
+EC10.plot(e = chlorothalonil.selected.EC.estimates, d = chlorothalonil.df)
 ```
 
 ## Deltamethrin
@@ -2270,14 +2317,14 @@ dose.check.plot(manganese.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = manganese.df[[1]], 
                                             traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(manganese.df[[1]]$drug)), 
-                  metadata = manganese.df[[1]])
-Manganese_dichloride_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-manganese.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = manganese.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(manganese.df[[1]]$drug)), 
+#                   metadata = manganese.df[[1]])
+# Manganese_dichloride_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# manganese.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = manganese.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 
 ### Best model from model selection
@@ -2290,6 +2337,7 @@ Manganese_dichloride_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 manganese.df.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = manganese.df[[1]])
+EC10.plot(e = manganese.df.selected.EC.estimates, d = manganese.df)
 ```
 
 ## Propoxur
@@ -2306,16 +2354,16 @@ propoxur.df <- Reduce(rbind,propoxur) %>%
 data.cleaning.plot(propoxur.df[[2]], "Bleach Quality")
 dose.check.plot(propoxur.df[[1]])
 
-drug.drm <- suppressMessages(fit_all_models(data = propoxur.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(propoxur.df[[1]]$drug)), 
-                  metadata = propoxur.df[[1]])
-Propoxur_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-propoxur.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = propoxur.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = propoxur.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(propoxur.df[[1]]$drug)), 
+#                   metadata = propoxur.df[[1]])
+# Propoxur_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# propoxur.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = propoxur.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 
 ### Best model from model selection
@@ -2328,6 +2376,7 @@ Propoxur_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 propoxur.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                           drug.df = propoxur.df[[1]])
+EC10.plot(e = propoxur.selected.EC.estimates, d = propoxur.df)
 ```
 
 ## Mancozeb
@@ -2346,14 +2395,14 @@ dose.check.plot(mancozeb.df[[1]])
 
 drug.drm <- suppressMessages(fit_all_models(data = mancozeb.df[[1]], 
                                             traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(mancozeb.df[[1]]$drug)), 
-                  metadata = mancozeb.df[[1]])
-Mancozeb_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-mancozeb.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = mancozeb.df[[1]])%>%
-  dplyr::filter(model == "LL.4")
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(mancozeb.df[[1]]$drug)), 
+#                   metadata = mancozeb.df[[1]])
+# Mancozeb_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# mancozeb.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = mancozeb.df[[1]])%>%
+#   dplyr::filter(model == "LL.4")
 
 
 ### Best model from model selection
@@ -2366,6 +2415,7 @@ Mancozeb_DRCplot +
   ggplot2::labs(subtitle = "Selected Models")
 mancozeb.selected.EC.estimates <- selected.strain.EC50s(best.drug.drm = best.drug.drm,
                                                         drug.df = mancozeb.df[[1]])
+EC10.plot(e = mancozeb.selected.EC.estimates, d = mancozeb.df)
 ```
 
 
@@ -2378,21 +2428,21 @@ drug.classes <- read.csv("data/drugclasses.csv") %>%
   dplyr::select(c(drug, class)) %>%
   dplyr::arrange(class)
 
-# LL4 for all strains and compounds
-LL4.EC.est.list <- list()
-for(i in 1:length(ls(pattern = "LL4.estimate"))){
-  LL4.EC.est.list[[i]] <- get(ls(pattern = "LL4.estimate")[i])
-}
-LL4.EC.est.dat <- do.call(rbind, LL4.EC.est.list) %>%
-  dplyr::mutate(fraction = as.factor(fraction),
-                model = as.factor(model),
-                null.estimate = as.factor(is.na(Std..Error)),
-                above.max.conc = as.factor(above.max.conc)) %>%
-  dplyr::rename(Strain = strain)
-
-levels(LL4.EC.est.dat$null.estimate) <- c("Estimated ECs","NA EC Estimate")
-levels(LL4.EC.est.dat$fraction) <- c("EC10","EC50","EC90")
-levels(LL4.EC.est.dat$above.max.conc) <- c("EC Estimate Within Dose Range","EC Estimate Exceeds Maximum Dose")
+# # LL4 for all strains and compounds
+# LL4.EC.est.list <- list()
+# for(i in 1:length(ls(pattern = "LL4.estimate"))){
+#   LL4.EC.est.list[[i]] <- get(ls(pattern = "LL4.estimate")[i])
+# }
+# LL4.EC.est.dat <- do.call(rbind, LL4.EC.est.list) %>%
+#   dplyr::mutate(fraction = as.factor(fraction),
+#                 model = as.factor(model),
+#                 null.estimate = as.factor(is.na(Std..Error)),
+#                 above.max.conc = as.factor(above.max.conc)) %>%
+#   dplyr::rename(Strain = strain)
+# 
+# levels(LL4.EC.est.dat$null.estimate) <- c("Estimated ECs","NA EC Estimate")
+# levels(LL4.EC.est.dat$fraction) <- c("EC10","EC50","EC90")
+# levels(LL4.EC.est.dat$above.max.conc) <- c("EC Estimate Within Dose Range","EC Estimate Exceeds Maximum Dose")
 
 # Model estimates from model selection
 selected.EC.est.list <- list()
@@ -2410,17 +2460,17 @@ levels(selected.EC.est.dat$null.estimate) <- c("Estimated ECs","NA EC Estimate")
 levels(selected.EC.est.dat$fraction) <- c("EC10","EC50","EC90")
 levels(selected.EC.est.dat$above.max.conc) <- c("EC Estimate Within Dose Range","EC Estimate Exceeds Maximum Dose")
 
-LL4.EC.est.dat %>%
-  dplyr::group_by(null.estimate, fraction, Strain, drug) %>%
-  dplyr::summarise(n()) %>%
-  ggplot(., mapping = aes(x = drug, y = `n()`, fill = Strain)) + 
-  theme_bw() + 
-  geom_col(position = "stack") +
-  scale_fill_manual(name = "Strain", values = strain_colors) + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
-  facet_grid(fraction~null.estimate, drop = TRUE, scales = "free_x") + 
-  labs(x = "Toxicant",
-       y = "Number of Dose-Response Curve Fits")
+# LL4.EC.est.dat %>%
+#   dplyr::group_by(null.estimate, fraction, Strain, drug) %>%
+#   dplyr::summarise(n()) %>%
+#   ggplot(., mapping = aes(x = drug, y = `n()`, fill = Strain)) + 
+#   theme_bw() + 
+#   geom_col(position = "stack") +
+#   scale_fill_manual(name = "Strain", values = strain_colors) + 
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) + 
+#   facet_grid(fraction~null.estimate, drop = TRUE, scales = "free_x") + 
+#   labs(x = "Toxicant",
+#        y = "Number of Dose-Response Curve Fits")
 
 selected.EC.est.dat %>%
   dplyr::group_by(null.estimate, fraction, Strain, drug, best.model) %>%
@@ -2435,7 +2485,7 @@ selected.EC.est.dat %>%
        y = "Number of Dose-Response Curve Fits")
 
 
-EC.est.dat %>%
+selected.EC.est.dat %>%
   dplyr::group_by(above.max.conc, fraction, model, Strain, drug) %>%
   dplyr::filter(model == "Log-Logistic",
                 fraction == "EC10") %>%
@@ -2454,7 +2504,7 @@ EC.est.dat %>%
 
 ### EC10
 ```{r EC10 plots, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE}
-EC.est.dat %>%
+selected.EC.est.dat %>%
   dplyr::filter(fraction == "EC10",
                 above.max.conc == "EC Estimate Within Dose Range",
                 model == "Log-Logistic",
@@ -2464,7 +2514,7 @@ EC.est.dat %>%
   dplyr::filter(n > 5) %>%
   write.csv("output/toxicants.8strains.csv")
 
-tox.filter <- EC.est.dat %>%
+tox.filter <- selected.EC.est.dat %>%
   dplyr::filter(fraction == "EC10",
                 above.max.conc == "EC Estimate Within Dose Range",
                 model == "Log-Logistic",
@@ -2472,7 +2522,7 @@ tox.filter <- EC.est.dat %>%
   dplyr::group_by(drug) %>%
   dplyr::summarise(n = n())
 
-drug.nested.ECs <- EC.est.dat %>%
+drug.nested.ECs <- selected.EC.est.dat %>%
   dplyr::filter(fraction == "EC10",
                 model == "Log-Logistic",
                 null.estimate != "NA EC Estimate") %>%
@@ -2500,7 +2550,7 @@ EC.plot <- function(data, drug){
 }
 purrr::map2(drug.nested.ECs$data, drug.nested.ECs$drug, EC.plot)
 
-EC.est.dat %>%
+selected.EC.est.dat %>%
   dplyr::filter(fraction == "EC10",
                 model == "Log-Logistic",
                 null.estimate != "NA EC Estimate") %>%
@@ -2518,7 +2568,7 @@ EC.est.dat %>%
        y = "EC10 Estimate (µM)")
 
 
-EC.comps <- EC.est.dat %>%
+EC.comps <- selected.EC.est.dat %>%
   dplyr::full_join(.,drug.classes) %>%
   dplyr::filter(fraction == "EC10",
                 above.max.conc == "EC Estimate Within Dose Range",
@@ -2578,7 +2628,7 @@ EC.est.dat %>%
 ```
 
 ### EC90
-```{r EC90 plots, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE}
+```{r EC90 plots, eval=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE, include=FALSE}
 EC.est.dat %>%
   dplyr::filter(fraction == "EC90",
                 above.max.conc == "EC Estimate Within Dose Range",
@@ -2683,7 +2733,7 @@ purrr::map2(EC90.nested.tx.classes$data, EC90.nested.tx.classes$class, rel.EC90.
 ### Summary Tables
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
 options(scipen = 99999)
-nested.summary.tables <- EC.est.dat %>%
+nested.summary.tables <- selected.EC.est.dat %>%
   dplyr::filter(above.max.conc == "EC Estimate Within Dose Range",
                 null.estimate != "NA EC Estimate") %>%
   dplyr::mutate(estimate = round(Estimate, 2),

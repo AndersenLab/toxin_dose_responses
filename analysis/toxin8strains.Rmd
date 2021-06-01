@@ -1256,6 +1256,7 @@ data.cleaning.plot <- function(data, title){
   labs(x = "Strain", y = "Experimental Retention (% of Expected Wells)")
 }
 EC10.plot <- function(e, d){
+  e[is.na(e)] <- 0 
   max.EC10 <- e %>%
     dplyr::filter(fraction == "EC10") %>%
     dplyr::select(Estimate, `Std. Error`) %>%
@@ -1263,19 +1264,21 @@ EC10.plot <- function(e, d){
     dplyr::filter(max.value == max(max.value)) %>%
     dplyr::select(max.value) %>% as.numeric()
   
+  drug <- unique(e$drug)
+  
   
   if(max(d[[1]]$concentration_um) < max.EC10){
-    e %>%
+    plot <- e %>%
       dplyr::mutate(label = paste0(best.model,"; ",round(Estimate, 2)," µM")) %>%
       dplyr::filter(fraction == "EC10") %>%
       ggplot(., mapping = aes(x = strain, y = Estimate, colour = strain)) + 
       theme_bw() +
+      geom_hline(yintercept = max(d[[1]]$concentration_um), linetype = 2, colour = "grey") + 
       geom_pointrange(aes(ymin=Lower, ymax=Upper)) +
       # geom_text_repel(aes(label = round(Estimate, 2)), size = 3, box.padding = 0.5, colour = "black") +
       # geom_text_repel(aes(label = best.model), size = 3, box.padding = 2, colour = "black") +
       geom_text_repel(aes(label = label), size = 3, box.padding = 2, colour = "black") +
       scale_y_log10() +
-      geom_hline(yintercept = max(d[[1]]$concentration_um), linetype = 2, colour = "grey") + 
       scale_colour_manual(values = strain_colors, name = "Strain") + 
       theme(axis.ticks.x = element_blank(),
             axis.text.x = element_blank(),
@@ -1283,7 +1286,7 @@ EC10.plot <- function(e, d){
             panel.grid = element_blank()) + 
       labs(y = "EC10", x = "Strain")
   } else {
-    e %>%
+   plot <- e %>%
       dplyr::mutate(label = paste0(best.model,"; ",round(Estimate, 2)," µM")) %>%
       dplyr::filter(fraction == "EC10") %>%
       ggplot(., mapping = aes(x = strain, y = Estimate, colour = strain)) + 
@@ -1303,6 +1306,7 @@ EC10.plot <- function(e, d){
     
     
   }
+  ggsave(plot, filename = paste0("output/",drug,"E10plot.png"), width = 7, height = 5)
 
 }
 ```
@@ -1561,7 +1565,7 @@ EC10.plot(e = copper.selected.EC.estimates, d = copper.df)
 ```
 
 ## Nickel
-```{r Nickel, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r Nickel, echo=FALSE, message=FALSE, warning=FALSE}
 nickel <- purrr::map2(MDHD.data.list, 
                         "nickel",
                         pull.toxin)

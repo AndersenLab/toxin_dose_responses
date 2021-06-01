@@ -1561,7 +1561,7 @@ EC10.plot(e = copper.selected.EC.estimates, d = copper.df)
 ```
 
 ## Nickel
-```{r Nickel, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Nickel, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 nickel <- purrr::map2(MDHD.data.list, 
                         "nickel",
                         pull.toxin)

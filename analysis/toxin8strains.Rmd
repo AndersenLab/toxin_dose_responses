@@ -2434,7 +2434,7 @@ EC10.plot(e = mancozeb.selected.EC.estimates, d = mancozeb.df)
 
 
 ## EC Estimates
-```{r DRC metrics, echo=FALSE, message=FALSE, warning=FALSE}
+```{r DRC metrics, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.pal <- c(brewer.pal(n = 9,name = "Set1"), brewer.pal(n = 8, "Set2"), brewer.pal(n = 8, "Set3"))
 drug.classes <- read.csv("data/drugclasses.csv") %>%
   dplyr::select(c(drug, class)) %>%

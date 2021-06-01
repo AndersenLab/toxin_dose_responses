@@ -1277,6 +1277,10 @@ EC10.plot <- function(e, d){
       scale_y_log10() +
       geom_hline(yintercept = max(d[[1]]$concentration_um), linetype = 2, colour = "grey") + 
       scale_colour_manual(values = strain_colors, name = "Strain") + 
+      theme(axis.ticks.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.title.x = element_blank(),
+            panel.grid = element_blank()) + 
       labs(y = "EC10", x = "Strain")
   } else {
     e %>%
@@ -1290,6 +1294,10 @@ EC10.plot <- function(e, d){
       geom_text_repel(aes(label = label), size = 3, box.padding = 2, colour = "black") +
       scale_y_log10(limits = c(unique(d[[1]]$concentration_um)[2],
                                max(d[[1]]$concentration_um))) +
+            theme(axis.ticks.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.title.x = element_blank(),
+            panel.grid = element_blank()) + 
       scale_colour_manual(values = strain_colors, name = "Strain") + 
       labs(y = "EC10", x = "Strain")
     
@@ -1442,16 +1450,16 @@ data.cleaning.plot(silver.df[[2]], "Bleach Quality")
 dose.check.plot(silver.df[[1]])
 
 
-drug.drm <- suppressMessages(fit_all_models(data = silver.df[[1]], 
-                                            traits = "median_wormlength_um_reg"))
-plot_EC50s_on_DRC(all.model.list = drug.drm,
-                  toxin = levels(as.factor(silver.df[[1]]$drug)), 
-                  metadata = silver.df[[1]])
-Silver_nitrate_DRCplot+
-  ggplot2::labs(subtitle = "LL4 Model")
-silver.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
-                                    drug.df = silver.df[[1]]) %>%
-  dplyr::filter(model == "LL.4")
+# drug.drm <- suppressMessages(fit_all_models(data = silver.df[[1]], 
+#                                             traits = "median_wormlength_um_reg"))
+# plot_EC50s_on_DRC(all.model.list = drug.drm,
+#                   toxin = levels(as.factor(silver.df[[1]]$drug)), 
+#                   metadata = silver.df[[1]])
+# Silver_nitrate_DRCplot+
+#   ggplot2::labs(subtitle = "LL4 Model")
+# silver.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+#                                     drug.df = silver.df[[1]]) %>%
+#   dplyr::filter(model == "LL.4")
 
 
 
@@ -1562,20 +1570,20 @@ nickel.df <- Reduce(rbind,nickel) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%## from combining 9,10,11
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin15A_1")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1")) %>%
   cleanData(.)
 data.cleaning.plot(nickel.df[[2]], "Bleach Quality")
 dose.check.plot(nickel.df[[1]])
 
-# drug.drm <- suppressMessages(fit_all_models(data = nickel.df[[1]], 
+# drug.drm <- suppressMessages(fit_all_models(data = nickel.df[[1]],
 #                                             traits = "median_wormlength_um_reg"))
 # plot_EC50s_on_DRC(all.model.list = drug.drm,
-#                   toxin = levels(as.factor(nickel.df[[1]]$drug)), 
+#                   toxin = levels(as.factor(nickel.df[[1]]$drug)),
 #                   metadata = nickel.df[[1]])
 # 
 # Nickel_dichloride_DRCplot+
 #   ggplot2::labs(subtitle = "LL4 Model")
-# nickel.LL4.estimates <- strain.EC50s(drug.drm = drug.drm, 
+# nickel.LL4.estimates <- strain.EC50s(drug.drm = drug.drm,
 #                                     drug.df = nickel.df[[1]])%>%
 #   dplyr::filter(model == "LL.4")
 

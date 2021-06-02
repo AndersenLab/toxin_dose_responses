@@ -2434,7 +2434,7 @@ EC10.plot(e = mancozeb.selected.EC.estimates, d = mancozeb.df)
 
 
 ## EC Estimates
-```{r DRC metrics, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r DRC metrics, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.pal <- c(brewer.pal(n = 9,name = "Set1"), brewer.pal(n = 8, "Set2"), brewer.pal(n = 8, "Set3"))
 drug.classes <- read.csv("data/drugclasses.csv") %>%
   dplyr::select(c(drug, class)) %>%
@@ -2515,7 +2515,7 @@ levels(selected.EC.est.dat$above.max.conc) <- c("EC Estimate Within Dose Range",
 ```
 
 ### EC10
-```{r EC10 plots, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
+```{r EC10 plots, eval=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, include=FALSE}
 selected.EC.est.dat %>%
   dplyr::filter(fraction == "EC10",
                 above.max.conc == "EC Estimate Within Dose Range",
@@ -2743,7 +2743,7 @@ purrr::map2(EC90.nested.tx.classes$data, EC90.nested.tx.classes$class, rel.EC90.
 ```
 
 ### Summary Tables
-```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE, include=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE, include=FALSE, eval=FALSE}
 options(scipen = 99999)
 nested.summary.tables <- selected.EC.est.dat %>%
   dplyr::filter(above.max.conc == "EC Estimate Within Dose Range",
@@ -2814,7 +2814,7 @@ carb.DRCs
 ggsave(carb.DRCs, filename = "output/carb.DRCs.png", height = 7.5, width = 10)
 ```
 
-```{r fungicides, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r fungicides, echo=FALSE, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Fungicide") %>%
   dplyr::select(drug)
@@ -2829,14 +2829,14 @@ fungi.DRCs
 ggsave(fungi.DRCs, filename = "output/fungi.DRCs.png", height = 7.5, width = 10)
 ```
 
-```{r pyrethroids, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r pyrethroids, echo=FALSE, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Synthetic Pyrethroid Insecticide") %>%
   dplyr::select(drug)
 Deltamethrin_DRCplot
 ```
 
-```{r organophosphate, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r organophosphate, echo=FALSE, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Organophosphate insecticide") %>%
   dplyr::select(drug)
@@ -2849,7 +2849,7 @@ organophosphate.DRCs
 ggsave(organophosphate.DRCs, filename = "output/organophosphate.DRCs.png", height = 5, width = 10)
 ```
 
-```{r metal, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r metal, echo=FALSE, message=FALSE, eval=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Heavy Metal") %>%
   dplyr::select(drug)
@@ -2869,7 +2869,7 @@ metal.DRCs
 ggsave(metal.DRCs, filename = "output/metal.DRCs.png", height = 9, width = 10)
 ```
 
-```{r herb, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+```{r herb, echo=FALSE, message=FALSE, eval=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Herbicide") %>%
   dplyr::select(drug)

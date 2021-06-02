@@ -1491,7 +1491,7 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 data.cleaning.plot(cadmium.df[[2]], "Bleach Quality: Filtered")
 dose.check.plot(cadmium.df[[1]])
@@ -2434,7 +2434,7 @@ EC10.plot(e = mancozeb.selected.EC.estimates, d = mancozeb.df)
 
 
 ## EC Estimates
-```{r DRC metrics, echo=FALSE, message=FALSE, warning=FALSE}
+```{r DRC metrics, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.pal <- c(brewer.pal(n = 9,name = "Set1"), brewer.pal(n = 8, "Set2"), brewer.pal(n = 8, "Set3"))
 drug.classes <- read.csv("data/drugclasses.csv") %>%
   dplyr::select(c(drug, class)) %>%
@@ -2515,7 +2515,7 @@ levels(selected.EC.est.dat$above.max.conc) <- c("EC Estimate Within Dose Range",
 ```
 
 ### EC10
-```{r EC10 plots, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE}
+```{r EC10 plots, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
 selected.EC.est.dat %>%
   dplyr::filter(fraction == "EC10",
                 above.max.conc == "EC Estimate Within Dose Range",
@@ -2618,7 +2618,7 @@ purrr::map2(EC.nested.tx.classes$data, EC.nested.tx.classes$class, rel.EC10.plot
 ```
 
 ### EC50
-```{r eval=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, , echo=FALSE, include=FALSE}
+```{r eval=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE, echo=FALSE, include=FALSE}
 EC.est.dat %>%
   dplyr::filter(fraction == "EC50",
                 above.max.conc == "EC Estimate Within Dose Range") %>%
@@ -2743,7 +2743,7 @@ purrr::map2(EC90.nested.tx.classes$data, EC90.nested.tx.classes$class, rel.EC90.
 ```
 
 ### Summary Tables
-```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=TRUE, include=FALSE}
 options(scipen = 99999)
 nested.summary.tables <- selected.EC.est.dat %>%
   dplyr::filter(above.max.conc == "EC Estimate Within Dose Range",
@@ -2800,7 +2800,7 @@ ggplot(model.dists, mapping = aes(x = Worm_Length, fill = model)) +
 
 
 ## Toxicant Classes
-```{r carbamate insecticides, echo=FALSE, message=FALSE, warning=FALSE}
+```{r carbamate insecticides, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Carbamate Insecticide") %>%
   dplyr::select(drug)
@@ -2814,7 +2814,7 @@ carb.DRCs
 ggsave(carb.DRCs, filename = "output/carb.DRCs.png", height = 7.5, width = 10)
 ```
 
-```{r fungicides, echo=FALSE, message=FALSE, warning=FALSE}
+```{r fungicides, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Fungicide") %>%
   dplyr::select(drug)
@@ -2829,14 +2829,14 @@ fungi.DRCs
 ggsave(fungi.DRCs, filename = "output/fungi.DRCs.png", height = 7.5, width = 10)
 ```
 
-```{r pyrethroids, echo=FALSE, message=FALSE, warning=FALSE}
+```{r pyrethroids, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Synthetic Pyrethroid Insecticide") %>%
   dplyr::select(drug)
 Deltamethrin_DRCplot
 ```
 
-```{r organophosphate, echo=FALSE, message=FALSE, warning=FALSE}
+```{r organophosphate, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Organophosphate insecticide") %>%
   dplyr::select(drug)
@@ -2849,7 +2849,7 @@ organophosphate.DRCs
 ggsave(organophosphate.DRCs, filename = "output/organophosphate.DRCs.png", height = 5, width = 10)
 ```
 
-```{r metal, echo=FALSE, message=FALSE, warning=FALSE}
+```{r metal, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Heavy Metal") %>%
   dplyr::select(drug)
@@ -2869,7 +2869,7 @@ metal.DRCs
 ggsave(metal.DRCs, filename = "output/metal.DRCs.png", height = 9, width = 10)
 ```
 
-```{r herb, echo=FALSE, message=FALSE, warning=FALSE}
+```{r herb, echo=FALSE, message=FALSE, warning=FALSE, include=FALSE}
 drug.classes %>%
   dplyr::filter(class == "Herbicide") %>%
   dplyr::select(drug)

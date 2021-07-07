@@ -13,6 +13,7 @@ editor_options:
 
 ```{r include=FALSE}
 require(tidyverse)
+require(workflowr)
 require(easyXpress)
 require(drc)
 require(knitr)
@@ -543,7 +544,7 @@ geno_matrix <- data.table::fread("data/toxin_8strain_genotype_matrix.tsv") %>%
   as.data.frame() %>%
   dplyr::rename(ECA248 = CB4855, PD1074 = N2)
 strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
-names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
+names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396","ECA248", "RC301",   "MY16", "XZ1516")
 se.DR <- function(x){
   norm <- x %>%
     dplyr::group_by(strain,) %>%
@@ -975,6 +976,19 @@ MDHD.toxin27A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Pro
   easyXpress::setFlags(.) %>% 
   easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
 
+
+##############
+## TOXIN 28 ##
+##############
+MDHD.toxin28A <- easyXpress::readXpress(filedir = "~/Dropbox/HTA_ImageXpress/Projects/20210701_toxin28A/",
+                                             design = T,
+                                             rdafile = "CellProfiler-Analysis_20210701_toxin28A_data_1625594171SJW.RData") %>% 
+  dplyr::filter(Worm_Length > 50) %>%
+  easyXpress::modelSelection(.) %>%
+  easyXpress::edgeFlag(.) %>%
+  easyXpress::setFlags(.) %>% 
+  easyXpress::process(., Metadata_Plate, Metadata_Well, Metadata_Experiment, bleach, drug, strain, concentration_um)
+
 beepr::beep(sound = "fanfare")
 # #### TIDY IMAGES #### (ifneedbe)
 # easyXpress::tidyImages(project_dir = "/Volumes/ECA_Image/sam/20210211-toxin18A/", rm_other = T)
@@ -1015,7 +1029,8 @@ all.dat <- MDHD.toxin09A$summarized_processed %>%
   dplyr::full_join(MDHD.toxin24A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin25A$summarized_processed) %>%
   dplyr::full_join(MDHD.toxin26A$summarized_processed) %>%
-  dplyr::full_join(MDHD.toxin27A$summarized_processed)
+  dplyr::full_join(MDHD.toxin27A$summarized_processed) %>%
+  dplyr::full_join(MDHD.toxin28A$summarized_processed)
 
 all.dat <- all.dat%>%
   dplyr::mutate(drug = as.factor(stringr::str_to_sentence(drug)))
@@ -1099,7 +1114,7 @@ cadmium.df <- Reduce(rbind,cadmium) %>%
                 assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
   dplyr::left_join(., cv.n.censor) %>%
   dplyr::filter(cv.censor != 1) %>%
-  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin10A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
+  dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 
 
@@ -1868,11 +1883,12 @@ for(i in 1:length(all.herits)){
     
     if(drug.herit[[j]][[1]] != "NA"){
       broad <- drug.herit[[j]][[1]] %>%
-      dplyr::select(drug, concentration_um, H2) %>%
-      as.data.frame()
-    narrow <- drug.herit[[j]][[3]] %>%
-      dplyr::select(drug, concentration_um, h2) %>%
-      as.data.frame()
+        tidyr::pivot_longer(cols = H2, names_to = "metric") %>%
+        as.data.frame()
+      
+      narrow <- drug.herit[[j]][[3]] %>%
+        tidyr::pivot_longer(cols = h2, names_to = "metric") %>%
+        as.data.frame()
     
     all.doses[[j]] <- broad %>%
       dplyr::full_join(., narrow) %>%
@@ -1881,11 +1897,52 @@ for(i in 1:length(all.herits)){
       next
     }
   }
-  all.dose.herits <- Reduce(rbind, all.doses) %>%
-    dplyr::arrange(-H2)
-  top.herits[[i]] <- all.dose.herits[1:3,]
+  all.dose.herits <- Reduce(rbind, all.doses)
+  top.herits[[i]] <- all.dose.herits
 }
 top.H2.summary <- do.call(rbind, top.herits)
+drug.classes <- read.csv("data/drugclasses.csv")
+h2.doses <- data.table::fread("data/h2doses.csv")
+
+
+
+
+big.herit.summary <- h2.doses %>%
+  dplyr::mutate(concentration_um = round(concentration_um,1)) %>%
+  dplyr::left_join(.,top.H2.summary) %>%
+  dplyr::left_join(., drug.classes) %>%
+  tidyr::pivot_wider(names_from = metric, values_from = c(upper, lower, value)) %>%
+  dplyr::mutate(class = as.factor(class))
+class.palette <- c("darkgreen","brown","steelblue1","navajowhite","tan","sandybrown","yellow","red")
+names(class.palette) <- unique(big.herit.summary$class)
+
+
+big.herit.plot <- ggplot(big.herit.summary, mapping = aes(x = value_H2, y = value_h2, colour = class)) + 
+  theme_bw(base_size = 20) + 
+  geom_abline(slope = 1, alpha = 0.8, linetype = 4) + 
+  geom_errorbar(aes(ymin = lower_h2, ymax = upper_h2), alpha = 0.4) + 
+  geom_errorbarh(aes(xmin = lower_H2, xmax = upper_H2), alpha = 0.4) +
+  geom_point(size = 5) + 
+  ylim(c(0,1)) + 
+  xlim(c(0,1)) + 
+  # geom_text_repel(aes(label = drug), colour = "black", 
+  #                 box.padding = 2, 
+  #                 max.overlaps = Inf, 
+  #                 point.padding = 0.5, size = 3.5) +
+  scale_colour_manual(values = class.palette, guide = F) + 
+  theme(panel.grid = element_blank()) + 
+  labs(x = "Broad-sense heritability",
+       y = "Narrow-sense heritability")
+width = 6
+height = width
+ggsave(big.herit.plot, filename = "output/big.herit.plot.png", width = width, height = height)
+  
+
+
+
+
+
+
 topH2.nested <- top.H2.summary %>%
   dplyr::group_by(drug) %>%
   tidyr::nest()

@@ -25,6 +25,10 @@ require(ggrepel)
 require(sommer)
 require(RColorBrewer)
 require(beepr)
+require(magrittr)
+require(cowplot)
+require(grid)
+require(gridExtra)
 setwd("~/Documents/projects/toxin_dose_responses/")
 H2 <- function(d){
   strain.fit <- lme4::lmer(data = d, formula = value ~ 1 + (1|strain))
@@ -225,6 +229,108 @@ H2.plot <- function(H2.out){
   print(NS)
   print(h_h_plot)
     
+}
+DR.herit.summary <- function(H2.out, x, doses){
+  
+
+
+  H2.ests <- list()
+  for(i in 1:length(H2.out)){H2.ests[i] <- H2.out[[i]][2]}
+  H2.points <- list()
+  for(i in 1:length(H2.out)){H2.points[i] <- H2.out[[i]][1]}
+  h2.points <- list()
+  for(i in 1:length(H2.out)){h2.points[i] <- H2.out[[i]][3]}
+
+  H2.df <- do.call(rbind, H2.ests) %>%
+    dplyr::filter(H2.rep != "NA") %>%
+    dplyr::mutate(H2.rep = as.numeric(H2.rep))
+  H2.point.df <- do.call(rbind, H2.points) %>%
+    dplyr::filter(H2 != "NA") %>%
+    dplyr::mutate(H2 = as.numeric(H2))
+  h2.point.df <- do.call(rbind, h2.points) %>%
+    dplyr::filter(h2 != "NA") %>%
+    dplyr::mutate(h2 = as.numeric(h2))
+  options(scipen = 9999999)
+  
+  H2.df$concentration_um <- as.numeric(as.character(H2.df$concentration_um))
+  H2.point.df$concentration_um <- as.numeric(as.character(H2.point.df$concentration_um))
+  h2.point.df$concentration_um <- as.numeric(as.character(h2.point.df$concentration_um))
+  
+  GWA.dose.herits <- H2.point.df[which(H2.point.df$concentration_um %in% doses),]
+  
+  norm <- x %>%
+    dplyr::group_by(strain,) %>%
+    dplyr::filter(concentration_um == 0) %>%
+    dplyr::summarize(mean_ctrl = mean(mean_wormlength_um_reg)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(strain, mean_ctrl) %>% ##added trait
+    dplyr::full_join(x , by = c("strain")) %>% ## "trait" instead of "condition"
+    dplyr::distinct() %>%
+    dplyr::mutate(norm_pheno = mean_wormlength_um_reg - mean_ctrl) 
+  dose_avg <- norm %>%
+    dplyr::group_by(strain, concentration_um) %>%
+    dplyr::summarise(avg = mean(norm_pheno), st_dev = sd(norm_pheno))
+  dose.range <- unique(dose_avg$concentration_um)[length(unique(dose_avg$concentration_um))] - unique(dose_avg$concentration_um)[2]
+
+  population.10perceffect <- x %>%
+    dplyr::filter(concentration_um == levels(as.factor(x$concentration_um))[length(levels(as.factor(x$concentration_um)))]) %>%
+    dplyr::select(strain, concentration_um, median_wormlength_um_reg) %>%
+    dplyr::group_by(concentration_um) %>%
+    dplyr::summarise(avg.effects = mean(median_wormlength_um_reg)) %>%
+    dplyr::select(avg.effects) %>% as.numeric() * 0.1
+
+  population.response <- x %>%
+    dplyr::select(drug, strain, concentration_um, median_wormlength_um_reg) %>%
+    dplyr::mutate(affected = if_else(median_wormlength_um_reg < population.10perceffect, true = "affected", false = "unaffected")) %>%
+    dplyr::group_by(drug, concentration_um, affected) %>%
+    dplyr::summarise(n = n()) %>%
+    tidyr::pivot_wider(names_from = affected, values_from = n)
+  population.response[is.na(population.response)] <- 0
+  population.response %<>%
+    dplyr::mutate(fraction.affected = 1 - (affected/(affected+unaffected)))
+
+
+  frac.affected <- population.response %>%
+    dplyr::left_join(.,GWA.dose.herits) %>%
+    dplyr::select(-c(upper, lower)) %>%
+    dplyr::mutate(H2 = if_else(is.na(H2),
+                               true = "",
+                               false = as.character(round(H2,2)))) %>%
+    ggplot(.) +
+    theme_bw() + 
+    geom_line(aes(x=log(concentration_um), 
+                  y=fraction.affected*100)) + 
+    theme(panel.grid = element_blank()) +
+    geom_vline(xintercept = log(GWA.dose.herits$concentration_um), linetype = 2) + 
+    geom_label_repel(aes(x=log(concentration_um),
+                        y=fraction.affected*100,
+                        label = H2)) + 
+    ggtitle("") + 
+    ylim(c(0,100)) + 
+    labs(x=expression(italic("log")("Concentration (μM)")),
+       y = "Population affected (%)")
+  
+  strains <- ggplot() +
+    theme_bw() + 
+    geom_errorbar(data = dose_avg, 
+                  aes(x=log(concentration_um), 
+                      ymin=avg-st_dev, 
+                      ymax = avg+st_dev,
+                      colour = strain), 
+                  width = 1/(dose.range/10))  +
+    geom_line(data = dose_avg,
+              aes(x=log(concentration_um), 
+                  y=avg, 
+                  group = strain, 
+                  colour = strain), size = 0.5) +
+    scale_colour_manual(values = strain_colors, name = "Strain") +
+    geom_vline(xintercept = log(GWA.dose.herits$concentration_um), linetype = 2) +
+    scale_y_continuous("Normalized response") + 
+    theme(panel.grid = element_blank(),
+          legend.position = "left") + 
+    labs(x=expression(italic("log")("Concentration (μM)"))) + 
+    ggtitle(unique(x$drug))
+  cowplot::plot_grid(strains, frac.affected, rel_widths = c(3:2))
 }
 remove_outliers <- function(x, na.rm = TRUE, ...) {
     qnt <- stats::quantile(x, probs = c(0.25, 0.75), na.rm = na.rm, 
@@ -562,21 +668,57 @@ dose_avg <- norm %>%
 
 dose.range <- unique(dose_avg$concentration_um)[length(unique(dose_avg$concentration_um))] - unique(dose_avg$concentration_um)[2]
 
-dose_avg %>% 
+
+population.10perceffect <- x %>%
+  dplyr::filter(concentration_um == levels(as.factor(x$concentration_um))[length(levels(as.factor(x$concentration_um)))]) %>%
+  dplyr::select(strain, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um) %>%
+  dplyr::summarise(avg.effects = mean(median_wormlength_um_reg)) %>%
+  dplyr::select(avg.effects) %>% as.numeric() * 0.5
+
+population.response <- x %>%
+  dplyr::select(drug, strain, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::mutate(affected = if_else(median_wormlength_um_reg < population.10perceffect, true = "affected", false = "unaffected")) %>%
+  dplyr::group_by(drug, concentration_um, affected) %>%
+  dplyr::summarise(n = n()) %>%
+  tidyr::pivot_wider(names_from = affected, values_from = n)
+population.response[is.na(population.response)] <- 0
+population.response %<>%
+  dplyr::mutate(fraction.affected = affected/(affected+unaffected))
+
+
+frac.affected <- population.response %>%
   ggplot(.) +
   theme_bw() + 
-  #geom_point(data = dose_avg , aes(x=log(concentration_um) , y=avg), size = 0.1) +
-  geom_errorbar(aes(x=log(concentration_um), 
+  geom_line(aes(x=log(concentration_um), 
+                y=fraction.affected*100)) + 
+  theme(panel.grid = element_blank()) +
+  ggtitle("") + 
+  ylim(c(0,100)) + 
+  labs(x=expression(italic("log")("Concentration (μM)")),
+       y = "Population affected (%)")
+
+
+strains <- ggplot() +
+  theme_bw() + 
+  geom_errorbar(data = dose_avg, 
+                aes(x=log(concentration_um), 
                     ymin=avg-st_dev, 
                     ymax = avg+st_dev,
                     colour = strain), width = 1/(dose.range/10))  +
-  geom_line(aes(x=log(concentration_um), 
+  geom_line(data = dose_avg,
+            aes(x=log(concentration_um), 
                 y=avg, 
                 group = strain, 
                 colour = strain), size = 0.5) +
   scale_colour_manual(values = strain_colors, name = "Strain") +
   scale_y_continuous("Normalized response") + 
+  theme(panel.grid = element_blank(),
+        legend.position = "left") + 
+  labs(x=expression(italic("log")("Concentration (μM)"))) + 
   ggtitle(unique(x$drug))
+
+cowplot::plot_grid(strains, frac.affected, rel_widths = c(3:2))
 }
 ```
 
@@ -1084,8 +1226,6 @@ silver.df <- Reduce(rbind,silver) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15A_1","toxin15A_2")) %>%
   cleanData(.)
 
-
-
 drug.data.nested <- silver.df[[1]] %>%
   dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
   dplyr::group_by(concentration_um, strain) %>%
@@ -1101,7 +1241,8 @@ silverH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = silverH2)
-se.DR(silver.df[[1]])
+GWA.doses <- c(7.8, 250)
+DR.herit.summary(H2.out = silverH2, x = silver.df[[1]], doses = GWA.doses)
 ```
 
 ## Cadmium dichloride
@@ -1134,7 +1275,8 @@ cadmiumH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = cadmiumH2)
-se.DR(cadmium.df[[1]])
+GWA.doses <- c(50)
+DR.herit.summary(H2.out = cadmiumH2, x = cadmium.df[[1]], doses = GWA.doses)
 ```
 
 ## Copper (II) dichloride
@@ -1168,7 +1310,8 @@ copperH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = copperH2)
-se.DR(copper.df[[1]])
+GWA.doses <- c(100)
+DR.herit.summary(H2.out = copperH2, x = copper.df[[1]], doses = GWA.doses)
 ```
 
 ## Nickel dichloride
@@ -1203,7 +1346,8 @@ nickelH2 <- purrr::map2(drug.data.nested.reps$data,
             drugHeritability)
 
 H2.plot(H2.out = nickelH2)
-se.DR(nickel.df[[1]])
+GWA.doses <- c(100)
+DR.herit.summary(H2.out = nickelH2, x = nickel.df[[1]], doses = GWA.doses)
 ```
 
 ## Paraquat
@@ -1237,7 +1381,8 @@ paraquatH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = paraquatH2)
-se.DR(paraquat.df[[1]])
+GWA.doses <- c(62.5,250)
+DR.herit.summary(H2.out = paraquatH2, x = paraquat.df[[1]], doses = GWA.doses)
 
 ```
 
@@ -1272,7 +1417,8 @@ zincH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = zincH2)
-se.DR(zinc.df[[1]])
+GWA.doses <- c(50)
+DR.herit.summary(H2.out = zincH2, x = zinc.df[[1]], doses = GWA.doses)
 ```
 
 ## Pyraclostrobin
@@ -1306,7 +1452,8 @@ pyraclostrobinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = pyraclostrobinH2)
-se.DR(pyraclostrobin.df[[1]])
+GWA.doses <- c(93.75)
+DR.herit.summary(H2.out = pyraclostrobinH2, x = pyraclostrobin.df[[1]], doses = GWA.doses)
 
 ```
 
@@ -1341,7 +1488,8 @@ aldicarbH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = aldicarbH2)
-se.DR(aldicarb.df[[1]])
+GWA.doses <- c(156.25)
+DR.herit.summary(H2.out = aldicarbH2, x = aldicarb.df[[1]], doses = GWA.doses)
 ```
 
 ## Chlorfenapyr
@@ -1375,7 +1523,8 @@ chlorfenapyrH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = chlorfenapyrH2)
-se.DR(chlorfenapyr.df[[1]])
+GWA.doses <- c(0.62)
+DR.herit.summary(H2.out = chlorfenapyrH2, x = chlorfenapyr.df[[1]], doses = GWA.doses)
 ```
 
 ## Methomyl
@@ -1409,7 +1558,8 @@ methomylH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = methomylH2)
-se.DR(methomyl.df[[1]])
+GWA.doses <- c(50)
+DR.herit.summary(H2.out = methomylH2, x = methomyl.df[[1]], doses = GWA.doses)
 ```
 
 ## Methylmercury dichloride
@@ -1442,7 +1592,8 @@ mercuryH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = mercuryH2)
-se.DR(methyl.mercury.df[[1]])
+GWA.doses <- c(15.62)
+DR.herit.summary(H2.out = mercuryH2, x = methyl.mercury.df[[1]], doses = GWA.doses)
 ```
 
 ## Triphenyl phosphate
@@ -1458,7 +1609,7 @@ tpp.df <- Reduce(rbind,tpp) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
-
+se.DR(tpp.df[[1]])
 
 
 drug.data.nested <- tpp.df[[1]] %>%
@@ -1476,7 +1627,8 @@ tppH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = tppH2)
-se.DR(tpp.df[[1]])
+GWA.doses <- c(6.25,50)
+DR.herit.summary(H2.out = tppH2, x = tpp.df[[1]], doses = GWA.doses)
 ```
 
 ## Arsenic trioxide
@@ -1506,7 +1658,8 @@ arsenicH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = arsenicH2)
-se.DR(arsenic.df[[1]])
+GWA.doses <- c(242.26)
+DR.herit.summary(H2.out = arsenicH2, x = arsenic.df[[1]], doses = GWA.doses)
 ```
 
 ## Carbaryl
@@ -1536,7 +1689,8 @@ carbarylH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = carbarylH2)
-se.DR(carbaryl.df[[1]])
+GWA.doses <- c(262.14)
+DR.herit.summary(H2.out = carbarylH2, x = carbaryl.df[[1]], doses = GWA.doses)
 ```
 
 ## Carboxin
@@ -1566,7 +1720,8 @@ carboxinH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = carboxinH2)
-se.DR(carboxin.df[[1]])
+GWA.doses <- c(538.66)
+DR.herit.summary(H2.out = carboxinH2, x = carboxin.df[[1]], doses = GWA.doses)
 ```
 
 ## Chlorpyrifos
@@ -1598,7 +1753,8 @@ chlorpyrifosH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = chlorpyrifosH2)
-se.DR(chlorpyrifos.df[[1]])
+GWA.doses <- c(2.7)
+DR.herit.summary(H2.out = chlorpyrifosH2, x = chlorpyrifos.df[[1]], doses = GWA.doses)
 ```
 
 ## Lead (II) nitrate
@@ -1629,7 +1785,8 @@ leadH2 <- purrr::map2(drug.data.nested.reps$data,
             drugHeritability)
 
 H2.plot(H2.out = leadH2)
-se.DR(lead.df[[1]])
+GWA.doses <- c(49.74)
+DR.herit.summary(H2.out = leadH2, x = lead.df[[1]], doses = GWA.doses)
 ```
 
 ## Atrazine
@@ -1659,7 +1816,8 @@ atrazineH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = atrazineH2)
-se.DR(atrazine.df[[1]])
+GWA.doses <- c(510.2)
+DR.herit.summary(H2.out = atrazineH2, x = atrazine.df[[1]], doses = GWA.doses)
 ```
 
 ## 2,4-D
@@ -1689,7 +1847,9 @@ x2.4.DH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = x2.4.DH2)
-se.DR(x2.4.D.df[[1]])
+GWA.doses <- c(751.31)
+DR.herit.summary(H2.out = x2.4.DH2, x = x2.4.D.df[[1]], doses = GWA.doses)
+
 ```
 
 ## Malathion
@@ -1719,7 +1879,8 @@ malathionH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = malathionH2)
-se.DR(malathion.df[[1]])
+GWA.doses <- c(790.12)
+DR.herit.summary(H2.out = malathionH2, x = malathion.df[[1]], doses = GWA.doses)
 ```
 
 ## Chlorothalonil
@@ -1749,7 +1910,8 @@ chlorothalonilH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = chlorothalonilH2)
-se.DR(chlorothalonil.df[[1]])
+GWA.doses <- c(111.11)
+DR.herit.summary(H2.out = chlorothalonilH2, x = chlorothalonil.df[[1]], doses = GWA.doses)
 ```
 
 ## Deltamethrin
@@ -1837,7 +1999,8 @@ propoxurH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = propoxurH2)
-se.DR(propoxur.df[[1]])
+GWA.doses <- c(195.09)
+DR.herit.summary(H2.out = propoxurH2, x = propoxur.df[[1]], doses = GWA.doses)
 ```
 
 ## Mancozeb
@@ -1867,7 +2030,75 @@ mancozebH2 <- purrr::map2(drug.data.nested.reps$data,
             drug.data.nested.reps$concentration_um,
             drugHeritability)
 H2.plot(H2.out = mancozebH2)
-se.DR(mancozeb.df[[1]])
+GWA.doses <- c(65.54)
+DR.herit.summary(H2.out = mancozebH2, x = mancozeb.df[[1]], doses = GWA.doses)
+```
+
+## Bacteria
+```{r mancozeb, echo=FALSE, message=FALSE, warning=FALSE}
+bacteria <- purrr::map2(MDHD.data.list, 
+                      "Bacteria",
+                      pull.toxin)
+bacteria.df <- Reduce(rbind,bacteria) %>%
+  dplyr::mutate(assay_bleach = paste(Metadata_Experiment,bleach,sep = "_")) %>%
+  dplyr::left_join(., cv.n.censor) %>%
+  dplyr::filter(cv.censor != 1) %>%
+  cleanData(.)
+
+
+drug.data.nested <- bacteria.df[[1]] %>%
+  dplyr::select(strain, drug, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um, strain) %>%
+  tidyr::nest()
+
+drug.data.nested$data <- purrr::map(drug.data.nested$data, make.reps)
+drug.data.nested.reps <- drug.data.nested %>%
+  tidyr::unnest(cols = c(data)) %>%
+  dplyr::group_by(concentration_um) %>%
+  tidyr::nest()
+
+OD_H2 <- purrr::map2(drug.data.nested.reps$data,
+                     drug.data.nested.reps$concentration_um,
+                     drugHeritability)
+H2.plot(H2.out = OD_H2)
+
+se.DR.BACTERIA <- function(x){
+  norm <- x %>%
+    dplyr::group_by(strain,) %>%
+    dplyr::filter(concentration_um == 0) %>%
+    dplyr::summarize(mean_ctrl = mean(mean_wormlength_um_reg)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(strain, mean_ctrl) %>% ##added trait
+    dplyr::full_join(x , by = c("strain")) %>% ## "trait" instead of "condition"
+    dplyr::distinct() %>%
+    dplyr::mutate(norm_pheno = mean_wormlength_um_reg - mean_ctrl) 
+
+dose_avg <- norm %>%
+  dplyr::group_by(strain, concentration_um) %>%
+  dplyr::summarise(avg = mean(norm_pheno), st_dev = sd(norm_pheno))
+
+dose.range <- unique(dose_avg$concentration_um)[length(unique(dose_avg$concentration_um))] - unique(dose_avg$concentration_um)[2]
+
+dose_avg %>% 
+  ggplot(.) +
+  theme_bw() + 
+  #geom_point(data = dose_avg , aes(x=log(concentration_um) , y=avg), size = 0.1) +
+  geom_errorbar(aes(x=log(concentration_um), 
+                    ymin=avg-st_dev, 
+                    ymax = avg+st_dev,
+                    colour = strain))  +
+  geom_line(aes(x=log(concentration_um), 
+                y=avg, 
+                group = strain, 
+                colour = strain), size = 0.5) +
+  scale_colour_manual(values = strain_colors, name = "Strain") +
+  scale_y_continuous("Normalized response") + 
+  ggtitle(unique(x$drug)) +
+  labs(x = "log(Bacteria OD)")
+}
+
+
+se.DR.BACTERIA(bacteria.df[[1]])
 ```
 
 ```{r Summary, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
@@ -2014,79 +2245,100 @@ for(k in 1:length(clean.drug.phenos)){
 }
 
 
-# pq.dose.cor <- top.H2.summary %>%
-#   dplyr::filter(drug == "Paraquat") %>%
-#   dplyr::filter(concentration_um %in% c(62.5, 250)) %>%
-#   dplyr::left_join(., paraquat.df[[1]]) %>%
-#   dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg)
-# 
-# pq.norm <- pq.dose.cor %>%
-#   dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
-#   dplyr::group_by(concentration_um) %>%
-#   dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
-#   dplyr::full_join(pq.dose.cor,.) %>%
-#   dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
-# 
-# ggplot(pq.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
-#   theme_bw() + 
-#   geom_boxplot(position = position_dodge(1)) + 
-#   stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
-#   scale_fill_manual(values = strain_colors)+ 
-#   scale_colour_manual(values = strain_colors) + 
-#   facet_grid(.~strain)
-# 
-# summary(lm(data = pq.norm, formula = norm ~ concentration_um * strain))
-# 
-# 
-# 
-# 
-# carboxin.dose.cor <- top.H2.summary %>%
-#   dplyr::filter(drug == "Carboxin") %>%
-#   dplyr::filter(concentration_um %in% c(700.3, 910.3)) %>%
-#   dplyr::left_join(., carboxin.df[[1]]) %>%
-#   dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg)
-# 
-# carboxin.norm <- carboxin.dose.cor %>%
-#   dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
-#   dplyr::group_by(concentration_um) %>%
-#   dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
-#   dplyr::full_join(carboxin.dose.cor,.) %>%
-#   dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
-# 
-# ggplot(carboxin.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
-#   theme_bw() + 
-#   geom_boxplot(position = position_dodge(1)) + 
-#   stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
-#   scale_fill_manual(values = strain_colors)+ 
-#   scale_colour_manual(values = strain_colors) + 
-#   facet_grid(.~strain)
-# 
-# summary(lm(data = carboxin.norm, formula = norm ~ concentration_um * strain))
-# 
-# 
-# propoxur.dose.cor <- top.H2.summary %>%
-#   dplyr::filter(drug == "Propoxur") %>%
-#   dplyr::filter(concentration_um %in% c(195.1, 987.6)) %>%
-#   dplyr::left_join(., propoxur.df[[1]]) %>% View
-#   dplyr::select(drug, concentration_um, H2, h2, strain, median_wormlength_um_reg) %>%
-#   dplyr::filter(!is.na(median_wormlength_um_reg))
-# 
-# propoxur.norm <- propoxur.dose.cor %>%
-#   dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
-#   dplyr::group_by(concentration_um) %>%
-#   dplyr::summarise(dose.mean = mean(median_wormlength_um_reg)) %>%
-#   dplyr::full_join(propoxur.dose.cor,.) %>%
-#   dplyr::mutate(norm = dose.mean - median_wormlength_um_reg)
-# 
-# ggplot(propoxur.norm, mapping = aes(x = as.factor(concentration_um), y = norm, colour = strain, fill = strain)) + 
-#   theme_bw() + 
-#   geom_boxplot(position = position_dodge(1)) + 
-#   stat_summary(aes(y = norm, group=strain), fun=median, geom="line", position = position_dodge(1)) + 
-#   scale_fill_manual(values = strain_colors)+ 
-#   scale_colour_manual(values = strain_colors) + 
-#   facet_grid(.~strain)
-# 
-# summary(lm(data = propoxur.norm, formula = norm ~ concentration_um * strain))
+
+
+# K99 figure
+se.DR.K99 <- function(x){
+  text.size = 6
+  
+  norm <- x %>%
+    dplyr::group_by(strain,) %>%
+    dplyr::filter(concentration_um == 0) %>%
+    dplyr::summarize(mean_ctrl = mean(mean_wormlength_um_reg)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(strain, mean_ctrl) %>% ##added trait
+    dplyr::full_join(x , by = c("strain")) %>% ## "trait" instead of "condition"
+    dplyr::distinct() %>%
+    dplyr::mutate(norm_pheno = mean_wormlength_um_reg - mean_ctrl) 
+
+dose_avg <- norm %>%
+  dplyr::group_by(strain, concentration_um) %>%
+  dplyr::summarise(avg = mean(norm_pheno), st_dev = sd(norm_pheno))
+
+dose.range <- unique(dose_avg$concentration_um)[length(unique(dose_avg$concentration_um))] - unique(dose_avg$concentration_um)[2]
+
+
+population.10perceffect <- x %>%
+  dplyr::filter(concentration_um == levels(as.factor(x$concentration_um))[length(levels(as.factor(x$concentration_um)))]) %>%
+  dplyr::select(strain, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::group_by(concentration_um) %>%
+  dplyr::summarise(avg.effects = mean(median_wormlength_um_reg)) %>%
+  dplyr::select(avg.effects) %>% as.numeric() * 0.1
+
+population.response <- x %>%
+  dplyr::select(drug, strain, concentration_um, median_wormlength_um_reg) %>%
+  dplyr::mutate(affected = if_else(median_wormlength_um_reg < population.10perceffect, true = "affected", false = "unaffected")) %>%
+  dplyr::group_by(drug, concentration_um, affected) %>%
+  dplyr::summarise(n = n()) %>%
+  tidyr::pivot_wider(names_from = affected, values_from = n)
+population.response[is.na(population.response)] <- 0
+population.response %<>%
+  dplyr::mutate(fraction.affected = affected/(affected+unaffected))
+
+
+frac.affected <- population.response %>%
+  ggplot(.) +
+  theme_bw(base_size = text.size) + 
+  geom_line(aes(x=log(concentration_um), 
+                y=fraction.affected*100)) + 
+  theme(panel.grid = element_blank(),
+        plot.title = element_blank(),
+        axis.title.x = element_blank()) +
+  ylim(c(0,100)) + 
+  labs(y = "Population affected (%)")
+
+
+strains <- ggplot() +
+  theme_bw(base_size = text.size) + 
+  # geom_pointrange(data = dose_avg,
+  #                 aes(x=log(concentration_um),
+  #                     y = avg,
+  #                     ymin=avg-st_dev,
+  #                     ymax = avg+st_dev,
+  #                     colour = strain), size = 0.02) + 
+  # geom_errorbar(data = dose_avg,
+  #               aes(x=log(concentration_um),
+  #                   ymin=avg-st_dev,
+  #                   ymax = avg+st_dev,
+  #                   colour = strain), width = 0.2)  +
+  geom_line(data = dose_avg,
+            aes(x=log(concentration_um), 
+                y=avg, 
+                group = strain, 
+                colour = strain), size = 0.15) +
+  scale_colour_manual(values = strain_colors, name = "Strain") +
+  scale_y_continuous("Normalized response") + 
+  theme(panel.grid = element_blank(),
+        legend.position = "none",
+        axis.title.y = element_text(size = text.size), 
+        plot.title = element_blank(),
+        axis.title.x = element_blank())
+  # labs(x=expression(italic("log")("Concentration (μM)"))) + 
+  # ggtitle(unique(x$drug))
+
+multiplot <- cowplot::plot_grid(strains, frac.affected, rel_widths = c(1:1))
+grid.arrange(multiplot, top=textGrob(unique(x$drug), gp=gpar(fontsize=text.size)))
+}
+A <- se.DR.K99(tpp.df[[1]])
+B <- se.DR.K99(cadmium.df[[1]])
+C <- se.DR.K99(paraquat.df[[1]])
+K99.DR.fig <- cowplot::plot_grid(A, B, C, labels = "AUTO", label_size = 7, ncol = 1)
+x.grob <- textGrob(expression(italic("log")("Concentration (μM)")), 
+                   gp=gpar(fontsize=text.size))
+K99.DR.fig.2 <- grid.arrange(arrangeGrob(K99.DR.fig,bottom = x.grob))
+ggsave(K99.DR.fig.2, 
+       filename = "/Volumes/GoogleDrive/My Drive/Fellowships/K99-R00/plots/DR.fig.jpeg", width = 2.5, height = 4)
+
 
 ```
 

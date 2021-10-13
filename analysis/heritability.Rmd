@@ -277,7 +277,7 @@ DR.herit.summary <- function(H2.out, x, doses){
     dplyr::select(strain, concentration_um, median_wormlength_um_reg) %>%
     dplyr::group_by(concentration_um) %>%
     dplyr::summarise(avg.effects = mean(median_wormlength_um_reg)) %>%
-    dplyr::select(avg.effects) %>% as.numeric() * 0.1
+    dplyr::select(avg.effects) %>% as.numeric() * 0.5
 
   population.response <- x %>%
     dplyr::select(drug, strain, concentration_um, median_wormlength_um_reg) %>%
@@ -305,10 +305,10 @@ DR.herit.summary <- function(H2.out, x, doses){
     geom_label_repel(aes(x=log(concentration_um),
                         y=fraction.affected*100,
                         label = H2)) + 
-    ggtitle("") + 
+    ggtitle(paste0(round(GWA.dose.herits$concentration_um,2),"μM")) + 
     ylim(c(0,100)) + 
     labs(x=expression(italic("log")("Concentration (μM)")),
-       y = "Population affected (%)")
+       y = "Population Unaffected (%)")
   
   strains <- ggplot() +
     theme_bw() + 
@@ -330,7 +330,11 @@ DR.herit.summary <- function(H2.out, x, doses){
           legend.position = "left") + 
     labs(x=expression(italic("log")("Concentration (μM)"))) + 
     ggtitle(unique(x$drug))
-  cowplot::plot_grid(strains, frac.affected, rel_widths = c(3:2))
+  ggsave(cowplot::plot_grid(strains, frac.affected, rel_widths = c(3:2)), 
+         filename =paste0("output/",
+                          gsub(unique(x$drug),pattern = " ", replacement = "_"),
+                         "_GWA.DR.summary.png"), 
+         height = 5, width = 9)
 }
 remove_outliers <- function(x, na.rm = TRUE, ...) {
     qnt <- stats::quantile(x, probs = c(0.25, 0.75), na.rm = na.rm, 

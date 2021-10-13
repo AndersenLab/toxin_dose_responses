@@ -2039,7 +2039,7 @@ DR.herit.summary(H2.out = mancozebH2, x = mancozeb.df[[1]], doses = GWA.doses)
 ```
 
 ## Bacteria
-```{r mancozeb, echo=FALSE, message=FALSE, warning=FALSE}
+```{r bacteria, echo=FALSE, message=FALSE, warning=FALSE}
 bacteria <- purrr::map2(MDHD.data.list, 
                       "Bacteria",
                       pull.toxin)

@@ -275,7 +275,7 @@ DR.herit.summary <- function(H2.out, x, doses){
     dplyr::select(strain, concentration_um, mean_wormlength_um_reg) %>%
     dplyr::group_by(concentration_um) %>%
     dplyr::summarise(avg.effects = mean(mean_wormlength_um_reg)) %>%
-    dplyr::select(avg.effects) %>% as.numeric() * 0.5
+    dplyr::select(avg.effects) %>% as.numeric() * 0.1
 
   population.response <- x %>%
     dplyr::select(drug, strain, concentration_um, mean_wormlength_um_reg) %>%

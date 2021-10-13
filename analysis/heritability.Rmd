@@ -274,14 +274,17 @@ DR.herit.summary <- function(H2.out, x, doses){
 
   population.10perceffect <- x %>%
     dplyr::filter(concentration_um == levels(as.factor(x$concentration_um))[length(levels(as.factor(x$concentration_um)))]) %>%
-    dplyr::select(strain, concentration_um, median_wormlength_um_reg) %>%
+    dplyr::select(strain, concentration_um, mean_wormlength_um_reg) %>%
     dplyr::group_by(concentration_um) %>%
-    dplyr::summarise(avg.effects = mean(median_wormlength_um_reg)) %>%
+    dplyr::summarise(avg.effects = mean(mean_wormlength_um_reg)) %>%
     dplyr::select(avg.effects) %>% as.numeric() * 0.5
 
   population.response <- x %>%
-    dplyr::select(drug, strain, concentration_um, median_wormlength_um_reg) %>%
-    dplyr::mutate(affected = if_else(median_wormlength_um_reg < population.10perceffect, true = "affected", false = "unaffected")) %>%
+    dplyr::select(drug, strain, concentration_um, mean_wormlength_um_reg) %>%
+    # dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
+    dplyr::mutate(affected = if_else(mean_wormlength_um_reg < population.10perceffect, 
+                                     true = "affected", 
+                                     false = "unaffected")) %>%
     dplyr::group_by(drug, concentration_um, affected) %>%
     dplyr::summarise(n = n()) %>%
     tidyr::pivot_wider(names_from = affected, values_from = n)
@@ -1613,7 +1616,7 @@ tpp.df <- Reduce(rbind,tpp) %>%
   dplyr::filter(cv.censor != 1) %>%
   dplyr::filter(!assay_bleach %in% c("toxin09A_1","toxin11A_1","toxin15B_1")) %>%
   cleanData(.)
-se.DR(tpp.df[[1]])
+
 
 
 drug.data.nested <- tpp.df[[1]] %>%

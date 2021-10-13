@@ -231,8 +231,6 @@ H2.plot <- function(H2.out){
     
 }
 DR.herit.summary <- function(H2.out, x, doses){
-  
-
 
   H2.ests <- list()
   for(i in 1:length(H2.out)){H2.ests[i] <- H2.out[[i]][2]}
@@ -256,7 +254,7 @@ DR.herit.summary <- function(H2.out, x, doses){
   H2.point.df$concentration_um <- as.numeric(as.character(H2.point.df$concentration_um))
   h2.point.df$concentration_um <- as.numeric(as.character(h2.point.df$concentration_um))
   
-  GWA.dose.herits <- H2.point.df[which(H2.point.df$concentration_um %in% doses),]
+  GWA.dose.herits <- H2.point.df[which(H2.point.df$concentration_um %in% round(doses,1)),]
   
   norm <- x %>%
     dplyr::group_by(strain,) %>%

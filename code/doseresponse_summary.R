@@ -17,6 +17,7 @@ setwd(paste0(dirname(rstudioapi::getActiveDocumentContext()$path),"/.."))
 load("data/FileS1.RData")
 tx.classes <- data.table::fread(file = "data/tx.classes.csv") %>%
   dplyr::rename(Toxicant = drug)
+strain.data <- data.table::fread(file = "data/CelegansStrainData.tsv")
 
 #############
 # FUNCTIONS #
@@ -498,8 +499,7 @@ se.DRC <- function(x){
   
 }
 
-# data = tx.nested.dose.responses$data[[10]]
-# toxicant = tx.nested.dose.responses$drug[[10]]
+
 dose.response.summary <- function(data, toxicant){
   
   # Data cleaning
@@ -946,19 +946,12 @@ dose.response.summaries <- purrr::map2(tx.nested.dose.responses$data,
                                        tx.nested.dose.responses$drug,
                                        dose.response.summary)
 
-# Table 1
+
 overall.LOAEL.summary <- list()
 strain.LOAEL.summary <- list()
-# Supplement?
 DRC.ANOVAs <- list()
-
-#Figure 2,3
 dose.response.parameters.summary <- list()
-
-# Supplement/Stats
 model.fits <- list()
-
-# Figure 2,3
 EC.comps <- list()
 slope.comps <- list()
 
@@ -972,6 +965,13 @@ for(i in 1:length(dose.response.summaries)){
   slope.comps[[i]] <- dose.response.summaries[[i]][[7]]
 }
 
+filtered.strain.data <- strain.data %>%
+  dplyr::filter(strain %in% c("N2",names(strain_colors))) %>%
+  dplyr::select(strain, release, latitude, longitude, elevation, locality_description)
+colnames(filtered.strain.data) <- stringr::str_to_title(colnames(filtered.strain.data))
+colnames(filtered.strain.data) <- gsub(colnames(filtered.strain.data), pattern = "_", replacement = " ")
+filtered.strain.data %<>% dplyr::rename(`CeNDR Release` = Release)
+write.csv(filtered.strain.data, file = "manuscript_tables/supp.table.1.csv", quote = F, row.names = F)
 ###########
 ## LOAEL ##
 ###########
@@ -999,7 +999,7 @@ LOAEL.table <- LOAEL.summary %>%
   dplyr::arrange(big_class) %>%
   dplyr::select(big_class, everything(), -diluent, -class) %>%
   dplyr::rename(`Toxicant Class` = big_class)
-write.csv(LOAEL.table, file = "manuscript_tables/supp.table.1.csv", row.names = F)
+write.csv(LOAEL.table, file = "manuscript_tables/supp.table.3.csv", row.names = F)
 
 
 LOAEL.table %>%
@@ -1018,34 +1018,7 @@ LOAEL.table %>%
 ### DOSE RESPONSE PARAMETERS ###
 ################################
 
-processData <- function(data, toxicant){
-  # Data cleaning
-  raw.data <- data %>%
-    dplyr::mutate(drug = toxicant)
-  cleaned.data <- suppressMessages(cleanData(raw.data))
-  
-  
-  retained.bleaches <- data.retention(cleaned.data[[2]])
-  dose.check.plot(dat = cleaned.data[[1]])
-  cleaned.filtered.data <- retained.bleaches %>%
-    dplyr::left_join(.,cleaned.data[[1]])
-  return(cleaned.filtered.data)
-}
 
-processed.phenotype.data <- purrr::map2(tx.nested.dose.responses$data,
-                                        tx.nested.dose.responses$drug,
-                                        processData)
-
-
-reduced.processed.phenotypes <- processed.phenotype.data %>%
-  Reduce(rbind,.) %>%
-  dplyr::distinct(drug, concentration_um, strain, Metadata_Experiment, bleach, median_wormlength_um_reg) %>%
-  dplyr::ungroup() %>%
-  dplyr::arrange(drug, strain) %>%
-  dplyr::select(-Metadata_Experiment, -bleach) %>%
-  dplyr::select(drug, concentration_um, strain, median_wormlength_um_reg)
-
-write.csv(reduced.processed.phenotypes, file = "data/20220328_widmayer_doseresponse.csv", row.names = F)
 
 ##############
 ## FIGURE 2 ##
@@ -1229,7 +1202,7 @@ EC10.relative.potency.supp.table <- EC.comps %>%
                 Toxicant = drug) %>%
   dplyr::select(Toxicant, strain1, strain2, everything()) %>%
   data.frame()
-write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.2.csv", row.names = F)
+write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.4.csv", row.names = F)
 
 EC10.relative.potency <- EC.comps %>%
   Reduce(rbind,.) %>%
@@ -1664,13 +1637,22 @@ max.H2 <- ranked.herits %>%
   dplyr::group_by(drug) %>%
   dplyr::summarise(H2 = max(H2)) %>%
   dplyr::left_join(., ranked.herits) %>%
-  dplyr::select(drug, concentration_um, H2, rank)
-
+  dplyr::select(drug, concentration_um, H2, rank) %>%
+  dplyr::arrange(rank) %>%
+  data.frame()
+max.H2
 max.h2 <- ranked.herits %>%
   dplyr::group_by(drug) %>%
   dplyr::summarise(h2 = max(h2)) %>%
   dplyr::left_join(., ranked.herits) %>%
-  dplyr::select(drug, concentration_um, h2, rank)
+  dplyr::select(drug, concentration_um, h2, rank) %>%
+  dplyr::arrange(rank) %>%
+  data.frame()
+max.h2
+
+max.h2 %>%
+  dplyr::group_by(rank) %>%
+  dplyr::summarise(n = n())
 
 avg.herits <- ranked.herits %>%
   dplyr::filter(concentration_um != 0) %>%
@@ -1681,6 +1663,9 @@ avg.herits <- ranked.herits %>%
                    sd(h2))
 avg.herits %>%
   dplyr::filter(`mean(H2)` %in% range(avg.herits$`mean(H2)`))
+
+avg.herits %>%
+  dplyr::filter(`mean(h2)` %in% range(avg.herits$`mean(h2)`))
 
 
   
@@ -1705,7 +1690,7 @@ herit.at.EC10.closest.dose <- EC.10.diff.H2 %>%
                      dplyr::rename(max.h2 = h2,
                                    max.h2.conc = concentration_um))
 
-herit.at.EC10.closest.dose %>%
+h2.comp.table <- herit.at.EC10.closest.dose %>%
   dplyr::select(-max.h2.conc) %>%
   dplyr::mutate(`EC10 Dose - Top Heritable Dose` =  concentration_um - max.H2.conc) %>%
   dplyr::select(drug, concentration_um,max.H2.conc, `EC10 Dose - Top Heritable Dose`, H2, max.H2, h2, max.h2, rank) %>%
@@ -1717,6 +1702,68 @@ herit.at.EC10.closest.dose %>%
                 `h2 EC10` = h2,
                 `Top h2` = max.h2,
                 `Top Heritable Dose Rank` = rank)
+colnames(h2.comp.table)
+
+strain.nested.EC10 <- EC10 %>%
+  dplyr::select(drug, strain, Estimate) %>%
+  dplyr::group_by(strain) %>%
+  tidyr::nest()
+
+h2.comps.to.individual.strains <- function(EC10, this.strain){
+  strain.EC10.comp <- EC10 %>%
+    dplyr::filter(drug %in% h2.comp.table$Toxicant) %>%
+    dplyr::select(drug, Estimate) %>%
+    dplyr::rename(Toxicant = drug) %>%
+    dplyr::left_join(., h2.comp.table %>%
+                       dplyr::select(Toxicant, `Top Heritable Dose`))
+  strain.h2.comp.r2 <- summary(lm(data = strain.EC10.comp, formula = log10(`Top Heritable Dose`) ~ log10(Estimate)))
+  lm.params <- list(r2 = format(strain.h2.comp.r2$r.squared, digits = 3),
+       pval = format(as.numeric(pf(strain.h2.comp.r2$fstatistic[1],
+                                   strain.h2.comp.r2$fstatistic[2],
+                                   strain.h2.comp.r2$fstatistic[3],
+                                   lower.tail=FALSE)), digits=3)) %>% 
+    data.frame() %>%
+    dplyr::mutate(strain = this.strain)
+  
+}
+purrr::map2(strain.nested.EC10$data,
+            strain.nested.EC10$strain,
+            h2.comps.to.individual.strains)
+
+h2.comp.r2 <- summary(lm(data = h2.comp.table, formula = log10(`Top Heritable Dose`) ~ log10(`Closest Dosage to EC10`)))
+l <- list(r2 = format(h2.comp.r2$r.squared, digits = 3),
+          pval = format(as.numeric(pf(h2.comp.r2$fstatistic[1],
+                           h2.comp.r2$fstatistic[2],
+                           h2.comp.r2$fstatistic[3],
+                           lower.tail=FALSE)), digits=3)
+)
+
+eq <- substitute(italic(r)^2 == r2*","~~italic(p) == pval,l)
+eqstr <- as.character(as.expression(eq))
+h2.comp.figure <- ggplot() +
+  theme_bw(base_size = 11) + 
+  geom_smooth(h2.comp.table, mapping = aes(x = log10(`Closest Dosage to EC10`), 
+                                           y = log10(`Top Heritable Dose`)),
+              method = "lm", colour = "darkred") + 
+  
+  geom_smooth(PD1074.EC10s, mapping = aes(x = log10(Estimate), 
+                                           y = log10(`Top Heritable Dose`)),
+              method = "lm", colour = "orange") + 
+  geom_abline(slope = 1, intercept = 0) + 
+  geom_jitter(h2.comp.table, mapping = aes(x = log10(`Closest Dosage to EC10`), 
+                                           y = log10(`Top Heritable Dose`)),
+              width = 0.06, height = 0.06) + # some values are overplotted on log scale
+  geom_jitter(PD1074.EC10s, mapping = aes(x = log10(Estimate), 
+                                           y = log10(`Top Heritable Dose`)),
+              width = 0.06, height = 0.06, colour = "orange") + # some values are overplotted on log scale
+  
+  annotate(geom = "text", x = 1.5, y = 3, label = eqstr, parse = TRUE, colour = "darkred", size = 3) + 
+  theme(panel.grid = element_blank()) + 
+  labs(x = expression(log[10](`Closest Dosage to EC10 `(µM))),
+       y = expression(log[10](`Most Heritable Dosage `(µM))))
+ggsave(h2.comp.figure + theme(plot.background = element_rect(fill = "white",colour = NA)), 
+       filename = "manuscript_figures/fig.5.png", width = 3.5, height = 3.5)
+
 
 
 

@@ -1,8 +1,8 @@
-"Strain","Resistant","Sensitive","Total Significantly Different","Resistant:Sensitive"
-"CB4856",6,7,13,0.86
-"ECA248",2,7,9,0.29
-"ECA36",7,2,9,3.5
-"ECA396",2,7,9,0.29
-"MY16",3,9,12,0.33
-"RC301",5,5,10,1
-"XZ1516",8,2,10,4
+"Strain","Resistant","Sensitive","Resistant:Sensitive"
+"CB4856",9,12,0.75
+"ECA248",7,14,0.5
+"ECA36",13,8,1.6
+"ECA396",4,17,0.24
+"MY16",5,16,0.31
+"RC301",5,16,0.31
+"XZ1516",8,13,0.62

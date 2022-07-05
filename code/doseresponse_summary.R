@@ -1072,26 +1072,6 @@ LOAEL.table <- LOAEL.summary %>%
 write.csv(LOAEL.table, file = "manuscript_tables/supp.table.3.csv", row.names = F)
 
 
-<<<<<<< HEAD
-=======
-LOAEL.table %>%
-  tidyr::pivot_longer(cols = -c(`Toxicant Class`, Toxicant, `Population-wide LOAEL`), names_to = "LOAEL") %>% 
-  # dplyr::mutate(strain.is.pop.avg = if_else(`Population-wide LOAEL`== value, true = "Pop.Avg", false = "Strain-specific")) %>%
-  dplyr::group_by(Toxicant,value) %>%
-  dplyr::summarise(n = n()) %>%
-  dplyr::filter(n < 8) %>%
-  dplyr::distinct(Toxicant)
-
-LOAEL.table %>%
-  tidyr::pivot_longer(cols = -c(`Toxicant Class`, Toxicant, `Population-wide LOAEL`), names_to = "LOAEL") %>% 
-  # dplyr::mutate(strain.is.pop.avg = if_else(`Population-wide LOAEL`== value, true = "Pop.Avg", false = "Strain-specific")) %>%
-  dplyr::group_by(Toxicant,value) %>%
-  dplyr::summarise(n = n()) %>%
-  dplyr::filter(n < 8) %>% data.frame()
-
-
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
-
 
 ################################
 ### DOSE RESPONSE PARAMETERS ###
@@ -1325,23 +1305,6 @@ n.EC.comp.tests <- dose.response.parameter.summaries[[6]] %>%
 BF <- 0.05/n.EC.comp.tests
 options(scipen = 999999)
 
-<<<<<<< HEAD
-=======
-# EC10.relative.potency.supp.table <- dose.response.parameter.summaries[[6]] %>%
-#   Reduce(rbind,.) %>%
-#   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
-#   tidyr::separate(strains, c("strain1","strain2"), sep = "/") %>%
-#   dplyr::mutate(`p < 0.05` = if_else(condition = p.value < 0.05, true = "T", false = "F"),
-#                 p.value = round(p.value,6),
-#                 p.value = if_else(p.value < 0.000001, true =  "<< 0.00001", false = as.character(p.value))) %>%
-#   dplyr::rename(`Relative Potency Estimate` = Estimate,
-#                 SE = Std..Error,
-#                 `Fraction Comparison` = fracs,
-#                 Toxicant = drug) %>%
-#   dplyr::select(Toxicant, strain1, strain2, everything()) %>%
-#   data.frame()
-# write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.4.csv", row.names = F)
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
 
 EC10.relative.potency <- dose.response.parameter.summaries[[6]] %>%
   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
@@ -1445,17 +1408,13 @@ EC10.aov.list.tr[[2]][[2]][[2]] %>%
 # Metal Tukey's HSD Results
 EC10.aov.list.tr[[2]][[3]][[2]] %>%
   data.frame() %>%
-<<<<<<< HEAD
   dplyr::filter(p.adj < 0.05)
-=======
-  dplyr::filter(p.adj > 0.05)
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
+
 
 
 
 
 ## EC10 Relative Potency Tests ##
-<<<<<<< HEAD
 EC10.relative.potency.supp.table <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
@@ -1471,8 +1430,6 @@ EC10.relative.potency.supp.table <- dose.response.parameter.summaries[[6]] %>%
   data.frame()
 write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.4.csv", row.names = F)
 
-=======
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
 sig.EC.comps <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(drug %in% EC10.filtered$drug) %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
@@ -1530,11 +1487,6 @@ strain.resistance.sig %>%
 total.sensitive <- sum(strain.resistance.sig$sensitive)
 strain.resistance.sig %>%
   dplyr::mutate(pct.of.sensitive.strains = sensitive/total.sensitive)
-<<<<<<< HEAD
-
-=======
-0.205 + 0.273
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
 
 
 resistance <- strain.resistance.sig %>%
@@ -1557,10 +1509,6 @@ for(i in 1:1000){
   rep <- fisher.test(sensitive[,2:3], simulate.p.value = T)
   strain.sensitive.fisher.reps[[i]] <- rep$p.value
 }
-<<<<<<< HEAD
-=======
-# permuted p-values may fluctuate very slightly when run separate times, but should be stable around 0.02
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
 c(mean(unlist(strain.sensitive.fisher.reps)),sd(unlist(strain.sensitive.fisher.reps)))
 
 
@@ -1605,10 +1553,6 @@ BF <- 0.05/n.slope.comp.tests
 options(scipen = 999999)
 
 relative.slope <- dose.response.parameter.summaries[[7]] %>%
-<<<<<<< HEAD
-=======
-  # Reduce(rbind,.) %>%
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
   tidyr::separate(comps, c("strain1","strain2"), sep = "/") %>%
   dplyr::mutate(strain1 = gsub(strain1, pattern = "strain", replacement = "")) %>%
   dplyr::mutate(strain2 = gsub(strain2, pattern = "strain", replacement = "")) %>% 
@@ -1708,11 +1652,8 @@ slope.aov.list.tr <- slope.aov.list %>%
   purrr::keep(., is.list) %>%
   purrr::transpose()
 
-<<<<<<< HEAD
-# Overall anova results for slope
-=======
-# Overall anova results for EC10s
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
+
+# Overall anova results for slope\
 Reduce(rbind,slope.aov.list.tr[[1]])
 
 
@@ -1721,13 +1662,6 @@ slope.aov.list.tr[[2]][[4]][[2]] %>%
   data.frame() %>%
   dplyr::filter(p.adj < 0.05)
 
-<<<<<<< HEAD
-=======
-slope.aov.list.tr[[2]][[4]][[1]] %>%
-  data.frame() %>%
-  dplyr::filter(p.adj < 0.05)
-
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
 # Herbicide Tukey's HSD Results
 slope.aov.list.tr[[2]][[1]][[2]] %>%
   data.frame() %>%
@@ -1736,11 +1670,7 @@ slope.aov.list.tr[[2]][[1]][[2]] %>%
 # Insecticide Tukey's HSD Results
 slope.aov.list.tr[[2]][[2]][[2]] %>%
   data.frame() %>%
-<<<<<<< HEAD
-  dplyr::filter(p.adj > 0.05)
-=======
   dplyr::filter(p.adj < 0.05)
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
 
 # Metal Tukey's HSD Results
 slope.aov.list.tr[[2]][[3]][[2]] %>%
@@ -1751,7 +1681,6 @@ slope.aov.list.tr[[2]][[3]][[2]] %>%
 
 
 ## Slope Relative Potency Tests ##
-<<<<<<< HEAD
 dose.response.parameter.summaries[[7]] %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
   tidyr::separate(comps, c("strain1","strain2"), sep = "/") %>%
@@ -1767,14 +1696,6 @@ sig.EC.comps <- dose.response.parameter.summaries[[7]] %>%
   dplyr::mutate(strain2 = gsub(strain2, pattern = "strain", replacement = "")) %>% 
   dplyr::filter(drug %in% unique(EC10.filtered$drug),
                 strain2 == "PD1074" | strain1 == "PD1074") %>%
-=======
-sig.EC.comps <- dose.response.parameter.summaries[[7]] %>%
-  dplyr::filter(drug %in% slopes.filtered$drug) %>%
-  dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
-  tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
-  tidyr::separate(strains, c("strain1","strain2"), sep = "/") %>%
-  dplyr::filter(strain2 == "PD1074" | strain1 == "PD1074") %>%
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
   dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>%
   dplyr::mutate(PD1074.normed.diff = PD1074.normed.estimate-1,
                 focal.strain = if_else(strain1 == "PD1074", true = strain2, false = strain1)) %>%
@@ -1790,13 +1711,10 @@ sig.slope.comps <- relative.slope %>%
 
 nrow(sig.slope.comps)
 sig.slope.comps %>%
-<<<<<<< HEAD
   dplyr::group_by(big_class) %>%
   dplyr::count()
 
 sig.slope.comps %>%
-=======
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
   dplyr::group_by(focal.strain) %>%
   dplyr::count()
 
@@ -1829,10 +1747,6 @@ for(i in 1:1000){
   rep <- fisher.test(sensitive[,2:3], simulate.p.value = T)
   strain.sensitive.fisher.reps[[i]] <- rep$p.value
 }
-<<<<<<< HEAD
-=======
-# permuted p-values may fluctuate very slightly when run separate times, but should be stable around 0.02
->>>>>>> e517ca11509354e99bcab13e96527b8238460b3d
 c(mean(unlist(strain.sensitive.fisher.reps)),sd(unlist(strain.sensitive.fisher.reps)))
 
 

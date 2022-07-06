@@ -448,7 +448,7 @@ data.retention <- function(data){
   return(data.retention.df[,1:2])
   
 }
-se.DRC <- function(x){
+se.DRC <- function(x, dodge.width = 0.15){
   
   strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
   names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
@@ -477,12 +477,13 @@ se.DRC <- function(x){
   
   SE.DRC <- strains[which(strains$log.concentration != -Inf),] %>%
     ggplot(.,mapping = aes(x=concentration_um, y=avg)) +
-    theme_bw(base_size = 24) + 
-    geom_line(mapping = aes(group = strain, colour = strain), position = position_dodge2(width = 0.15)) +
+    theme_bw(base_size = 18) + 
+    geom_line(mapping = aes(group = strain, colour = strain), 
+              position = position_dodge2(width = dodge.width)) +
     geom_pointrange(mapping = aes(ymin=avg-st_dev, 
                                   ymax = avg+st_dev,
                                   colour = strain), 
-                    position = position_dodge2(width = 0.15),
+                    position = position_dodge2(width = dodge.width),
                     size = 0.4) + 
     
     scale_colour_manual(values = strain_colors, name = "Strain") +
@@ -493,7 +494,6 @@ se.DRC <- function(x){
           axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) + 
     labs(x="Concentration (μM)") + 
     ggtitle(unique(x$drug))
-  SE.DRC
   ggsave(SE.DRC, filename = paste0("output/", paste(paste(strsplit(unique(x$drug),split = " ")[[1]], collapse = "_"), "SE.DRC.plot", sep = "_"),".png"), 
          width = 6, height = 6)
   print(SE.DRC)
@@ -521,53 +521,13 @@ dose.response.summary <- function(data, toxicant){
     dplyr::filter(n > 10) %>%
     dplyr::select(-n) %>%
     dplyr::left_join(.,cleaned.data[[1]])
-  
 
-  # nested <- cleaned.filtered.data %>%
-  #   dplyr::select(strain, Metadata_Experiment, concentration_um, median_wormlength_um_reg) %>%
-  #   dplyr::group_by(strain, concentration_um) %>%
-  #   tidyr::nest()
-  # 
-  # confounding.assay.effects <- function(data, strain, concentration){
-  #   
-  #   assay.effect.aov.summary <- data.frame(summary(aov(data = data, 
-  #                                                      formula = median_wormlength_um_reg ~ Metadata_Experiment))[[1]][[5]][[1]],
-  #                                          strain,
-  #                                          concentration)
-  #   colnames(assay.effect.aov.summary) <- c("p.value","strain","concentration")
-  #   assay.effect.aov.summary
-  # }
-  # purrr::pmap(.l = list(nested$data, 
-  #                  nested$strain,
-  #                  nested$concentration_um),
-  #             .f = confounding.assay.effects) %>%
-  #   Reduce(rbind,.) %>%
-  #   dplyr::filter(p.value < 0.05/nrow(.)) %>%
-  #   dplyr::arrange(concentration)
-  
-  
-  
-    # dplyr::ungroup() %>%
-    # dplyr::select(strain, concentration_um, median_wormlength_um_reg) %>%
-    # dplyr::filter(!is.na(median_wormlength_um_reg)) %>%
-    # dplyr::group_by(strain, concentration_um) %>%
-    # dplyr::summarise(sd = sd(median_wormlength_um_reg)) %>%
-    # dplyr::mutate(outlier = remove_outliers(sd)) %>%
-    # dplyr::filter(!is.na(outlier)) %>%
-    # dplyr::select(strain, concentration_um) %>%
-    # dplyr::left_join(.,cleaned.data[[1]])
-    # 
-  
-  
   se.DRC(cleaned.filtered.data)
   
   drug.drm <- suppressMessages(fit_DRC_models(data = cleaned.filtered.data,
                                               traits = "median_wormlength_um_reg"))
   
-  # predicted.DRC.plot(all.model.list = drug.drm,
-  #                    toxin = unique(cleaned.filtered.data$drug),
-  #                    metadata = cleaned.filtered.data)
-  # 
+  
   # Population-wide LOAELs
   population.wide.LOAEL <- aov(data = cleaned.filtered.data, formula = median_wormlength_um_reg ~ as.factor(concentration_um))
   LOAEL.tukey <- TukeyHSD(population.wide.LOAEL)
@@ -744,10 +704,26 @@ dose.response.summary <- function(data, toxicant){
               cleaned.filtered.data))
 
 }
-
-# dose.response.summary(tx.nested.dose.responses$data[[1]],
-#                       tx.nested.dose.responses$drug[[1]])
-
+dose.response.plots.only <- function(data, toxicant, SE.drc.dodge.width = 0.09){
+  raw.data <- data %>%
+    dplyr::mutate(drug = toxicant)
+  cleaned.data <- suppressMessages(cleanData(raw.data))
+  
+  
+  retained.bleaches <- data.retention(cleaned.data[[2]])
+  dose.check.plot(dat = cleaned.data[[1]])
+  
+  cleaned.filtered.data <- retained.bleaches %>%
+    dplyr::left_join(.,cleaned.data[[1]]) %>%
+    dplyr::group_by(strain, concentration_um) %>%
+    dplyr::count() %>%
+    dplyr::arrange(n) %>%
+    dplyr::filter(n > 10) %>%
+    dplyr::select(-n) %>%
+    dplyr::left_join(.,cleaned.data[[1]])
+  
+  se.DRC(cleaned.filtered.data, dodge.width = SE.drc.dodge.width)
+}
 make.reps <- function(x){
   x$replicate <- seq(1,nrow(x))
   x %>%
@@ -937,10 +913,7 @@ dose.responses.df <- purrr::map(MDHD.data.list, concatenate.assays) %>%
                 drug = if_else(drug %in% c("Zinc","Zinc dichloride"), true = "Zinc chloride", false = drug),
                 drug = if_else(drug %in% c("Manganese dichloride"), true = "Manganese(II) chloride", false = drug))
 dose.responses.df <- dose.responses.df[-which(dose.responses.df$drug == "Chlorpyrifos" & dose.responses.df$Metadata_Experiment == "toxin17A"),] # inconsistent response in assay
-# dose.responses.df <- dose.responses.df[-which(dose.responses.df$drug == "Methomyl" & dose.responses.df$concentration_um >= 200),] # incomplete strain data
 dose.responses.df <- dose.responses.df[-which(dose.responses.df$drug == "Chlorfenapyr" & dose.responses.df$concentration_um >= 1.2),] # inconsistent response in assay
-# dose.responses.df <- dose.responses.df[-which(dose.responses.df$drug == "Methylmercury chloride" & dose.responses.df$concentration_um >= 62.5),]
-# dose.responses.df <- dose.responses.df[-which(dose.responses.df$drug == "Paraquat" & dose.responses.df$concentration_um >= 2000),]
 
 dose.responses.df %>%
   dplyr::distinct(food_type, drug) %>%
@@ -961,7 +934,6 @@ control.wells.variance <- dose.responses.df %>%
                    sd.median_wormlength_um = sd(median_wormlength_um),
                    cv.worm.length = sd(median_wormlength_um)/mean(median_wormlength_um))
 
-# cv.n.cutoff = quantile(control.wells.variance$cv.n, probs = seq(0,1,0.05))[[17]]
 cv.n.cutoff = 0.6
 annotated.control.wells.variance <- control.wells.variance %>%
   dplyr::mutate(censor = if_else(condition = cv.n > cv.n.cutoff, true = "CENSOR", false = "NO CENSOR")) %>% 
@@ -1015,25 +987,21 @@ tr.dose.response.summaries <- purrr::transpose(dose.response.summaries)
 dose.response.parameter.summaries <- purrr::map(.x = tr.dose.response.summaries,
                                                 .f = function(x){Reduce(rbind,x)})
 
+purrr::pmap(.l = list(tx.nested.dose.responses$data,
+                      tx.nested.dose.responses$drug,
+                      c(rep(0.15, 12), # first 12 toxicants
+                        0.04, 
+                        0.08, 
+                        rep(0.04, 2),
+                        0.09, 
+                        0.04, 
+                        0.02, 
+                        rep(0.10, 2),
+                        0.04,
+                        0.02,
+                        rep(0.04,2))),
+            .f = dose.response.plots.only)
 
-# overall.LOAEL.summary <- list()
-# strain.LOAEL.summary <- list()
-# DRC.ANOVAs <- list()
-# dose.response.parameters.summary <- list()
-# model.fits <- list()
-# EC.comps <- list()
-# slope.comps <- list()
-# 
-# 
-# for(i in 1:length(dose.response.summaries)){
-#   overall.LOAEL.summary[[i]] <- dose.response.summaries[[i]][[1]]
-#   strain.LOAEL.summary[[i]] <- dose.response.summaries[[i]][[2]]
-#   dose.response.parameters.summary[[i]] <- dose.response.summaries[[i]][[3]]
-#   model.fits[[i]] <- dose.response.summaries[[i]][[4]]
-#   DRC.ANOVAs[[i]] <- dose.response.summaries[[i]][[5]]
-#   EC.comps[[i]] <- dose.response.summaries[[i]][[6]]
-#   slope.comps[[i]] <- dose.response.summaries[[i]][[7]]
-# }
 
 filtered.strain.data <- strain.data %>%
   dplyr::filter(strain %in% c("N2",names(strain_colors))) %>%

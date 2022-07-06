@@ -1,0 +1,26 @@
+drug,diluent ,class,big_class
+"2,4-D",DMSO,Herbicide,Herbicide
+Aldicarb,DMSO,Carbamate_Insecticide,Insecticide
+Arsenic trioxide,Water,Metal,Metal
+Atrazine,DMSO,Herbicide,Herbicide
+Cadmium chloride,Water,Metal,Metal
+Carbaryl,DMSO,Carbamate_Insecticide,Insecticide
+Carboxin,DMSO,Fungicide,Fungicide
+Chlorfenapyr,DMSO,Pro-Insecticide,Insecticide
+Chlorothalonil,DMSO,Fungicide,Fungicide
+Chlorpyrifos,DMSO,Organophosphate_Insecticide,Insecticide
+Copper(II) chloride,Water,Metal,Metal
+Deltamethrin,DMSO,Synthetic Pyrethroid Insecticide,Insecticide
+Lead(II) nitrate,Water,Metal,Metal
+Malathion,DMSO,Organophosphate_Insecticide,Insecticide
+Mancozeb,DMSO,Fungicide,Fungicide
+Manganese(II) chloride, Water,Metal,Metal
+Methomyl,DMSO,Carbamate_Insecticide,Insecticide
+Methylmercury chloride,DMSO,Metal,Metal
+Nickel chloride,Water,Metal,Metal
+Paraquat,Water,Herbicide,Herbicide
+Propoxur,DMSO,Carbamate_Insecticide,Insecticide
+Pyraclostrobin,DMSO,Fungicide,Fungicide
+Silver nitrate,Water,Metal,Metal
+Triphenyl phosphate,DMSO,Flame_Retardant,Flame_Retardant
+Zinc chloride,Water,Metal,Metal

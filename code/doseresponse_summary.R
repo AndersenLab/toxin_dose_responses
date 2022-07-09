@@ -23,7 +23,7 @@ strain.data <- data.table::fread(file = "data/CelegansStrainData.tsv")
 # FUNCTIONS #
 #############
 strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
-names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
+names(strain_colors) <- c("CB4856","N2", "ECA36",  "ECA396"  ,"CB4855", "RC301",   "MY16", "XZ1516")
 concatenate.assays <- function(x){
   assay <- get(x)
   assay.df <- assay$summarized_processed %>%
@@ -233,7 +233,6 @@ cleanData <- function(raw.data){
   
   return(list(full_df_proc,drug.filtering.summary))
 }
-
 # dose-response model inference
 safe_LL4_strain <- purrr::safely(.f = ~ drc::drm(data = ., 
                                                  formula = value ~ concentration_um, strain,
@@ -375,8 +374,8 @@ logticks <- function(datavar,type) {
   
 }
 dose.check.plot <- function(dat){
-  strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
-  names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
+  strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29","#a37000","#627264","#67697C","purple")
+  names(strain_colors) <- c("CB4856","N2", "ECA36",  "ECA396"  ,"CB4855", "RC301",   "MY16", "XZ1516")
   dose.check <- ggplot(dat) + 
     theme_bw(base_size = 8) + 
     # geom_jitter(mapping = aes(x = strain, y = median_wormlength_um_reg, colour = Metadata_Experiment),size = 1) + 
@@ -448,10 +447,10 @@ data.retention <- function(data){
   return(data.retention.df[,1:2])
   
 }
-se.DRC <- function(x, dodge.width = 0.15){
+se.DRC <- function(x, dodge.width = 0.15, point.size = 0.4){
   
   strain_colors       <- c("blue",   "orange","#5A0C13","#C51B29",  "#a37000","#627264","#67697C","purple")
-  names(strain_colors) <- c("CB4856","PD1074", "ECA36",  "ECA396"  ,"ECA248", "RC301",   "MY16", "XZ1516")
+  names(strain_colors) <- c("CB4856","N2", "ECA36",  "ECA396"  ,"CB4855", "RC301",   "MY16", "XZ1516")
   
   norm <- x %>%
     dplyr::group_by(strain) %>%
@@ -479,19 +478,23 @@ se.DRC <- function(x, dodge.width = 0.15){
     ggplot(.,mapping = aes(x=concentration_um, y=avg)) +
     theme_bw(base_size = 18) + 
     geom_line(mapping = aes(group = strain, colour = strain), 
-              position = position_dodge2(width = dodge.width)) +
+              position = position_dodge2(width = dodge.width), size = 0.15) +
     geom_pointrange(mapping = aes(ymin=avg-st_dev, 
                                   ymax = avg+st_dev,
                                   colour = strain), 
                     position = position_dodge2(width = dodge.width),
-                    size = 0.4) + 
+                    size = point.size) + 
     
     scale_colour_manual(values = strain_colors, name = "Strain") +
-    scale_y_continuous("Normalized Worm Length (µm)") + 
+    scale_y_continuous("Normalized Worm Length (µm)", limits = c(-700,100), breaks = seq(-700, 0, 100)) + 
     scale_x_log10() +
     theme(panel.grid = element_blank(),
-          legend.position = "none",
-          axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5)) + 
+          legend.position = c(0.15,0.25),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 10),
+          legend.title = element_text(size = 12),
+          axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5),
+          axis.text = element_text(colour = "black")) + 
     labs(x="Concentration (μM)") + 
     ggtitle(unique(x$drug))
   ggsave(SE.DRC, filename = paste0("output/", paste(paste(strsplit(unique(x$drug),split = " ")[[1]], collapse = "_"), "SE.DRC.plot", sep = "_"),".png"), 
@@ -499,7 +502,6 @@ se.DRC <- function(x, dodge.width = 0.15){
   print(SE.DRC)
   
 }
-
 # data = tx.nested.dose.responses$data[[11]]
 # toxicant = tx.nested.dose.responses$drug[[11]]
 dose.response.summary <- function(data, toxicant){
@@ -704,7 +706,7 @@ dose.response.summary <- function(data, toxicant){
               cleaned.filtered.data))
 
 }
-dose.response.plots.only <- function(data, toxicant, SE.drc.dodge.width = 0.09){
+dose.response.plots.only <- function(data, toxicant, SE.drc.dodge.width = 0.09, SE.drc.point.size = 0.4){
   raw.data <- data %>%
     dplyr::mutate(drug = toxicant)
   cleaned.data <- suppressMessages(cleanData(raw.data))
@@ -722,17 +724,15 @@ dose.response.plots.only <- function(data, toxicant, SE.drc.dodge.width = 0.09){
     dplyr::select(-n) %>%
     dplyr::left_join(.,cleaned.data[[1]])
   
-  se.DRC(cleaned.filtered.data, dodge.width = SE.drc.dodge.width)
+  se.DRC(cleaned.filtered.data, dodge.width = SE.drc.dodge.width, point.size = SE.drc.point.size)
 }
 make.reps <- function(x){
   x$replicate <- seq(1,nrow(x))
   x %>%
     dplyr::rename(value = median_wormlength_um_reg)
 }
-genos <- data.table::fread("data/toxin_8strain_genotype_matrix.tsv") %>%
-  as.data.frame() %>%
-  dplyr::rename(ECA248 = CB4855, PD1074 = N2)
-
+genos <- data.table::fread("data/Genotype_Matrix.tsv") %>%
+  as.data.frame()
 H2 <- function(d){
   strain.fit <- lme4::lmer(data = d, formula = value ~ 1 + (1|strain))
   variances <- lme4::VarCorr(x = strain.fit)
@@ -826,7 +826,6 @@ H2.bootstrapping.calc <- function(d, nreps = 100, boot = T){
   }
   
 }
-
 drugHeritability <- function(rep.data, concentration_um){
   
   # Broad-sense Heritability
@@ -895,13 +894,90 @@ heritability.calculation <- function(data, toxicant){
                         drugHeritability)
   
 }
+plot_HH <- function(herit.data){
+  ggplot(herit.data, mapping = aes(x = H2, y = h2, colour = log(concentration_um))) + 
+    theme_bw(base_size = 11) +
+    geom_abline(slope = 1, alpha = 0.5, linetype = 3, size = 0.25) +
+    # geom_smooth(method = "lm", se = F, colour = "black", linetype = 1, size = 0.5) +
+    # stat_smooth(method="lm_right", fullrange=TRUE, colour = "black", se = F, size = 0.5, linetype = 1,alpha = 0.5) + 
+    geom_errorbar(aes(ymin = h2.lower, ymax = h2.upper), size = 0.2) +
+    geom_errorbarh(aes(xmin = H2.lower, xmax = H2.upper), size = 0.2) + 
+    facet_grid(. ~ drug) + 
+    scale_colour_gradient2(low = "darkblue", mid = "violet", high = "darkred", midpoint = 2, 
+                           name = expression(log[10](Concentration (µM)))) + 
+    theme(panel.grid = element_blank(),
+          axis.title.y = element_text(size = 8.5, angle = 0, vjust = 0.5),
+          axis.title.x = element_text(size = 8.5),
+          axis.text = element_text(size = 7), 
+          strip.text = element_text(size = 7),
+          legend.position="bottom",
+          legend.text = element_text(size = 7),
+          legend.title = element_text(size = 7)) + 
+    scale_x_continuous(breaks = seq(0,1,0.5), limits = c(0,1)) + 
+    scale_y_continuous(breaks = seq(0,1,0.5), limits = c(0,1)) + 
+    labs(x = bquote(italic(H^2)),
+         y = bquote(italic(h^2)))
+}
+gather.herit.ranges <- function(all.herits){
+  print(all.herits[[1]][[3]]$drug)
+  dose.herits <- list()
+  for(i in 1:length(all.herits)){
+    if(length(all.herits[[i]]) == 3){
+      H2.estimate <- all.herits[[i]][[1]] %>%
+        dplyr::rename(H2.upper = upper, H2.lower = lower)
+      
+      h2.estimate <- all.herits[[i]][[3]] %>%
+        dplyr::rename(h2.upper = upper, h2.lower = lower)
+      
+      dose.herits[[i]] <- H2.estimate %>%
+        dplyr::full_join(h2.estimate,.) %>%
+        suppressMessages() %>%
+        dplyr::select(drug, concentration_um, everything())
+    } else {
+      H2.estimate <- all.herits[[i]][[1]] %>%
+        dplyr::rename(H2.upper = upper, H2.lower = lower)
+      
+      h2.estimate <- all.herits[[i]][[2]] %>%
+        dplyr::rename(h2.upper = upper, h2.lower = lower)
+      
+      dose.herits[[i]] <- H2.estimate %>%
+        dplyr::full_join(h2.estimate,.) %>%
+        suppressMessages() %>%
+        dplyr::select(drug, concentration_um, everything())
+    }
+    
+  }
+  dose.herits %>% Reduce(rbind,.)
+}
+h2.comps.to.individual.strains <- function(EC10, this.strain){
+  strain.EC10.comp <- EC10 %>%
+    dplyr::filter(drug %in% h2.comp.table$Toxicant) %>%
+    dplyr::select(drug, Estimate) %>%
+    dplyr::rename(Toxicant = drug) %>%
+    dplyr::left_join(., h2.comp.table %>%
+                       dplyr::select(Toxicant, `Top Heritable Dose`))
+  strain.h2.comp.r2 <- summary(lm(data = strain.EC10.comp, formula = log10(`Top Heritable Dose`) ~ log10(Estimate)))
+  lm.params <- list(r2 = format(strain.h2.comp.r2$r.squared, digits = 3),
+                    pval = format(as.numeric(pf(strain.h2.comp.r2$fstatistic[1],
+                                                strain.h2.comp.r2$fstatistic[2],
+                                                strain.h2.comp.r2$fstatistic[3],
+                                                lower.tail=FALSE)), digits=3)) %>% 
+    data.frame() %>%
+    dplyr::mutate(strain = this.strain)
+  
+}
+
+
+
+
+
+
 
 
 MDHD.data.list <- as.list(ls(pattern = "MDHD"))
 dose.responses.df <- purrr::map(MDHD.data.list, concatenate.assays) %>%
   Reduce(rbind,.) %>%
   dplyr::filter(!drug %in% c("Control","Bacteria OD","Mancozeb_Dilute")) %>%  # extra conditions not pertaining to current experiment
-                # !drug %in% c("Manganese dichloride","Deltamethrin")) %>% # drugs scrubbed for poor high dose image quality or no response
   dplyr::mutate(drug = str_to_sentence(drug)) %>%
   dplyr::mutate(drug = if_else(drug == "2,4-d", true = "2,4-D", false = drug),
                 drug = if_else(drug %in% c("Cadmium","Cadmium dichloride"), true = "Cadmium chloride", false = drug),
@@ -914,16 +990,12 @@ dose.responses.df <- purrr::map(MDHD.data.list, concatenate.assays) %>%
                 drug = if_else(drug %in% c("Manganese dichloride"), true = "Manganese(II) chloride", false = drug))
 dose.responses.df <- dose.responses.df[-which(dose.responses.df$drug == "Chlorpyrifos" & dose.responses.df$Metadata_Experiment == "toxin17A"),] # inconsistent response in assay
 dose.responses.df <- dose.responses.df[-which(dose.responses.df$drug == "Chlorfenapyr" & dose.responses.df$concentration_um >= 1.2),] # inconsistent response in assay
+dose.responses.df[which(dose.responses.df$strain == "PD1074"),]$strain <- "N2"
+dose.responses.df[which(dose.responses.df$strain == "ECA248"),]$strain <- "CB4855"
 
-dose.responses.df %>%
-  dplyr::distinct(food_type, drug) %>%
-  dplyr::group_by(food_type, drug) %>%
-  dplyr::summarise(n = n()) %>%
-  tidyr::pivot_wider(names_from = food_type, values_from = n) %>%
-  dplyr::filter(!is.na(`15hHB101_20210223`),
-                !is.na(`15hHB101_20200127`))
-
-
+#############################
+### Supplemental Figure 1 ###
+#############################
 control.wells.variance <- dose.responses.df %>%
   dplyr::filter(concentration_um == 0) %>%
   dplyr::group_by(Metadata_Experiment, bleach) %>%
@@ -939,10 +1011,6 @@ annotated.control.wells.variance <- control.wells.variance %>%
   dplyr::mutate(censor = if_else(condition = cv.n > cv.n.cutoff, true = "CENSOR", false = "NO CENSOR")) %>% 
   dplyr::select(Metadata_Experiment, bleach, censor, cv.n, cv.worm.length) %>%
   dplyr::rename(censor.cv.n = cv.n, censor.cvWL = cv.worm.length)
-
-
-
-  
 cv.well.n.block.figure <- annotated.control.wells.variance %>%
   ggplot(., mapping = aes(x = Metadata_Experiment, y = censor.cv.n, colour = censor)) +
   theme_bw(base_size = 9) +
@@ -954,8 +1022,6 @@ cv.well.n.block.figure <- annotated.control.wells.variance %>%
         panel.grid = element_blank()) + 
   labs(y = "Well Titer Coefficient of Variation",
        x = "Assay")
-
-
 cv.n.cv.WL.figure <- annotated.control.wells.variance %>%
   ggplot(., mapping = aes(y = censor.cv.n, x = censor.cvWL, color = as.factor(censor))) + 
   theme_bw(base_size = 9) + 
@@ -969,10 +1035,10 @@ cv.n.cv.WL.figure <- annotated.control.wells.variance %>%
 cv.cleaning.supp.fig <- cowplot::plot_grid(cv.well.n.block.figure + theme(legend.position = "none"),
                    cv.n.cv.WL.figure, align = "h", labels = "AUTO")
 ggsave(cv.cleaning.supp.fig + theme(plot.background = element_rect(fill = "white",colour = NA)), 
-       filename = "manuscript_figures/supp.fig.1.png", width = 7.5, height = 3.5)
+       filename = "manuscript_figures/supp.fig.2.png", width = 7.5, height = 3.5)
 
 
-save(dose.responses.df, file = "data/all.dose.response.data.Rdata")
+# save(dose.responses.df, file = "data/all.dose.response.data.Rdata")
 
 tx.nested.dose.responses <- dose.responses.df %>%
   dplyr::full_join(., annotated.control.wells.variance) %>%
@@ -986,30 +1052,12 @@ tr.dose.response.summaries <- purrr::transpose(dose.response.summaries)
 
 dose.response.parameter.summaries <- purrr::map(.x = tr.dose.response.summaries,
                                                 .f = function(x){Reduce(rbind,x)})
-
-purrr::pmap(.l = list(tx.nested.dose.responses$data,
-                      tx.nested.dose.responses$drug,
-                      c(rep(0.15, 12), # first 12 toxicants
-                        0.04, 
-                        0.08, 
-                        rep(0.04, 2),
-                        0.09, 
-                        0.04, 
-                        0.02, 
-                        rep(0.10, 2),
-                        0.04,
-                        0.02,
-                        rep(0.04,2))),
-            .f = dose.response.plots.only)
+# 
+# 
+# test.DR <- dose.response.plots.only(tx.nested.dose.responses$data[[3]],
+#                                     tx.nested.dose.responses$drug[[3]], 0.15)
 
 
-filtered.strain.data <- strain.data %>%
-  dplyr::filter(strain %in% c("N2",names(strain_colors))) %>%
-  dplyr::select(strain, release, latitude, longitude, elevation, locality_description)
-colnames(filtered.strain.data) <- stringr::str_to_title(colnames(filtered.strain.data))
-colnames(filtered.strain.data) <- gsub(colnames(filtered.strain.data), pattern = "_", replacement = " ")
-filtered.strain.data %<>% dplyr::rename(`CeNDR Release` = Release)
-write.csv(filtered.strain.data, file = "manuscript_tables/supp.table.1.csv", quote = F, row.names = F)
 ###########
 ## LOAEL ##
 ###########
@@ -1037,13 +1085,8 @@ LOAEL.table <- LOAEL.summary %>%
   dplyr::arrange(big_class) %>%
   dplyr::select(big_class, everything(), -diluent, -class) %>%
   dplyr::rename(`Toxicant Class` = big_class)
-write.csv(LOAEL.table, file = "manuscript_tables/supp.table.3.csv", row.names = F)
+write.csv(LOAEL.table, file = "manuscript_tables/supp.table.2.csv", row.names = F)
 
-
-
-################################
-### DOSE RESPONSE PARAMETERS ###
-################################
 
 
 
@@ -1184,8 +1227,25 @@ reduced.endpoint <- reduced.EC10.filtered %>%
 write.csv(reduced.endpoint, "data/20220329_widmayer_endpoints.csv", row.names = F)
 #####
 
+#############################
+### Supplemental Figure 3 ###
+#############################\
+proc_img_dir <- c("~/Documents/projects/toxin_dose_responses/data/supplemental.image.files")
+dose.responses.df %>%
+  dplyr::filter(drug %in% c("Arsenic trioxide")) %>%
+  dplyr::distinct(Metadata_Experiment, Metadata_Plate, drug) %>% data.frame() 
+proc_dose_data <- MDHD.toxin19A$processed_data
+raw_dose_data <- MDHD.toxin19A$raw_data
+plot_raw <- easyXpress::viewDose(raw_dose_data %>%
+                                   dplyr::filter(Metadata_Plate == "p09"), 
+                                 strain_name = "PD1074", 
+                                 drug_name = "Arsenic trioxide", 
+                                 proc_img_dir = proc_img_dir) 
+ggsave(plot_raw, filename = "manuscript_figures/raw.arsenic.png", width = 20, height = 4)
 
-
+#############################
+### Supplemental Figure 4 ###
+#############################
 dose.responses.df %>%
   dplyr::filter(drug %in% c("Deltamethrin")) %>%
   dplyr::distinct(Metadata_Experiment, Metadata_Plate, drug) %>%
@@ -1193,7 +1253,7 @@ dose.responses.df %>%
 proc_dose_data <- MDHD.toxin27A$processed_data
 raw_dose_data <- MDHD.toxin27A$raw_data
 
-proc_img_dir <- c("~/Documents/projects/toxin_dose_responses/data/supplemental.image.files")
+
 PD1074_deltamethrin <- easyXpress::viewDose(proc_dose_data, 
                                   strain_name = "PD1074", 
                                   drug_name = "Deltamethrin", 
@@ -1214,34 +1274,82 @@ ggsave(RC301_Malathion, filename = "manuscript_figures/RC301_malathion.png", wid
 
 
 
-dose.responses.df %>%
-  dplyr::filter(drug %in% c("Arsenic trioxide")) %>%
-  dplyr::distinct(Metadata_Experiment, Metadata_Plate, drug) %>% data.frame() 
-proc_dose_data <- MDHD.toxin19A$processed_data
-raw_dose_data <- MDHD.toxin19A$raw_data
-easyXpress::viewWell(df = proc_dose_data,
-                     img_dir = proc_img_dir,
-                     plate = "p03",
-                     well = "B10", 
-                     boxplot = T)
-plot_raw <- easyXpress::viewDose(raw_dose_data %>%
-                                   dplyr::filter(Metadata_Plate == "p09"), 
-                                 strain_name = "PD1074", 
-                                 drug_name = "Arsenic trioxide", 
-                                 proc_img_dir = proc_img_dir) 
-ggsave(plot_raw, filename = "manuscript_figures/raw.arsenic.png", width = 20, height = 4)
+
+
+#################################
+### Supplemental Figures 5-29 ###
+#################################
+supp.DR.dodge.widths <- c(rep(0.15, 12),0.04, 0.08,rep(0.04, 2),0.09, 0.04, 0.02,rep(0.10, 2),0.04,0.02,rep(0.04,2))
+for(i in 1:length(tx.nested.dose.responses$data)){
+  supp.DR <- dose.response.plots.only(tx.nested.dose.responses$data[[i]],
+                                      tx.nested.dose.responses$drug[[i]],
+                                      supp.DR.dodge.widths[[i]])
+  ggsave(supp.DR, filename = paste0("manuscript_figures/supp.fig.", i + 4,".png"), width = 6, height = 6)
+}
+
+
+################
+### Figure 2 ###
+################
+DR.theme <- ggplot2::theme(axis.text = element_text(size = 7),
+                           axis.title = element_text(size = 7), 
+                           title = element_text(size = 7))
+
+nickelDR <- dose.response.plots.only(tx.nested.dose.responses$data[[6]],
+                                     tx.nested.dose.responses$drug[[6]],
+                                     supp.DR.dodge.widths[[6]], 
+                                     SE.drc.point.size = 0.05) + 
+  DR.theme + 
+  ggplot2::theme(legend.position = "none")
+
+
+carbarylDR <- dose.response.plots.only(tx.nested.dose.responses$data[[15]],
+                                     tx.nested.dose.responses$drug[[15]],
+                                     supp.DR.dodge.widths[[15]], 
+                                     SE.drc.point.size = 0.05) + 
+  DR.theme + 
+  ggplot2::theme(legend.position = "none")
+
+x24DDR <- dose.response.plots.only(tx.nested.dose.responses$data[[19]],
+                                   tx.nested.dose.responses$drug[[19]],
+                                   supp.DR.dodge.widths[[19]], 
+                                   SE.drc.point.size = 0.05) + 
+  DR.theme + 
+  ggplot2::theme(legend.position = "none")
+
+pyraclostrobinDR <- dose.response.plots.only(tx.nested.dose.responses$data[[11]],
+                                             tx.nested.dose.responses$drug[[11]],
+                                   supp.DR.dodge.widths[[11]], 
+                                   SE.drc.point.size = 0.05) + 
+  DR.theme + 
+  ggplot2::theme(legend.position = "none")
+
+
+for.legend <- dose.response.plots.only(tx.nested.dose.responses$data[[6]],
+                                       tx.nested.dose.responses$drug[[6]],
+                                       supp.DR.dodge.widths[[6]], 
+                                       SE.drc.point.size = 0.05)
+strain.legend <- cowplot::get_legend(plot = for.legend + 
+                                       ggplot2::theme(legend.text = element_text(size = 7),
+                                                      legend.title = element_text(size = 9),
+                                                      legend.position = "bottom",
+                                                      legend.background = element_rect(fill = "white", linetype = "blank")))
+
+DR.overview.fig <- cowplot::plot_grid(x24DDR, carbarylDR, nickelDR, pyraclostrobinDR, 
+                   ncol = 2, 
+                   nrow = 2, labels = "AUTO")
+DR.overview.fig2 <- cowplot::plot_grid(DR.overview.fig, strain.legend, nrow = 2, rel_heights = c(1,0.15))
+
+ggsave(DR.overview.fig2 + theme(plot.background = element_rect(fill = "white",colour = NA)), 
+       filename = "manuscript_figures/fig.2.png", width = 5, height = 5)
 
 
 
 
-  
 
-
-
-
-
-
-
+################
+### Figure 3 ###
+################
 complete.EC10.plot <- EC10.filtered %>%
   dplyr::filter(!drug %in% c("Malathion","Deltamethrin")) %>%
   ggplot(., mapping = aes(y = drug, x = Estimate, xmin = Lower, xmax = Upper,
@@ -1268,7 +1376,7 @@ n.EC.comp.tests <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%  
   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
   tidyr::separate(strains, c("strain1","strain2"), sep = "/") %>%
-  dplyr::filter(strain2 == "PD1074" | strain1 == "PD1074") %>%
+  dplyr::filter(strain2 == "N2" | strain1 == "N2") %>%
   nrow()
 BF <- 0.05/n.EC.comp.tests
 options(scipen = 999999)
@@ -1278,10 +1386,10 @@ EC10.relative.potency <- dose.response.parameter.summaries[[6]] %>%
   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
   tidyr::separate(strains, c("strain1","strain2"), sep = "/") %>%
   dplyr::filter(drug %in% unique(EC10.filtered$drug),
-                strain2 == "PD1074" | strain1 == "PD1074") %>%
-  dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>%
-  dplyr::mutate(PD1074.normed.diff = PD1074.normed.estimate-1,
-                focal.strain = if_else(strain1 == "PD1074", true = strain2, false = strain1)) %>%
+                strain2 == "N2" | strain1 == "N2") %>%
+  dplyr::mutate(N2.normed.estimate = if_else(strain1 == "N2", true = 1/Estimate, false = Estimate)) %>%
+  dplyr::mutate(N2.normed.diff = N2.normed.estimate-1,
+                focal.strain = if_else(strain1 == "N2", true = strain2, false = strain1)) %>%
   dplyr::left_join(.,tx.classes %>%
                      dplyr::rename(drug = Toxicant)) %>%
   dplyr::mutate(big_class = gsub(big_class, pattern = "_", replacement = " ")) %>%
@@ -1290,9 +1398,9 @@ EC10.relative.potency <- dose.response.parameter.summaries[[6]] %>%
 
 EC10.relative.potency.figure <- EC10.relative.potency %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
-  ggplot(., mapping = aes(y = drug, x = PD1074.normed.diff, 
-                          xmin = PD1074.normed.diff-Std..Error, 
-                          xmax = PD1074.normed.diff+Std..Error,
+  ggplot(., mapping = aes(y = drug, x = N2.normed.diff, 
+                          xmin = N2.normed.diff-Std..Error, 
+                          xmax = N2.normed.diff+Std..Error,
                           color = focal.strain,
                           alpha = sig)) + 
   theme_bw(base_size = 11) +
@@ -1311,7 +1419,7 @@ EC10.relative.potency.figure <- EC10.relative.potency %>%
         strip.text.y = element_text(angle = 0,size = 9),
         legend.position = "top") + 
   # xlim(c(-2,2)) +
-  labs(x = "Resistance Compared to Reference (PD1074)")
+  labs(x = "Resistance Compared to Reference (N2)")
 EC10.relative.potency.figure
 
 fig.2.legend <- cowplot::get_legend(complete.EC10.plot)
@@ -1325,7 +1433,7 @@ EC10.fig.2 <- cowplot::plot_grid(complete.EC10.plot +
                    rel_widths = c(0.9,1), labels = "AUTO")
 complete.EC10.fig.2.plot <- cowplot::plot_grid(EC10.fig.2, fig.2.legend, rel_heights = c(20,2), ncol = 1)
 complete.EC10.fig.2.plot
-ggsave(complete.EC10.fig.2.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.2.png", width = 7.5, height = 5)
+ggsave(complete.EC10.fig.2.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.3.png", width = 7.5, height = 5)
 
 
 
@@ -1396,17 +1504,17 @@ EC10.relative.potency.supp.table <- dose.response.parameter.summaries[[6]] %>%
                 Toxicant = drug) %>%
   dplyr::select(Toxicant, strain1, strain2, everything()) %>%
   data.frame()
-write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.4.csv", row.names = F)
+write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.3.csv", row.names = F)
 
 sig.EC.comps <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(drug %in% EC10.filtered$drug) %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
   tidyr::separate(strains, c("strain1","strain2"), sep = "/") %>%
-  dplyr::filter(strain2 == "PD1074" | strain1 == "PD1074") %>%
-  dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>%
-  dplyr::mutate(PD1074.normed.diff = PD1074.normed.estimate-1,
-                focal.strain = if_else(strain1 == "PD1074", true = strain2, false = strain1)) %>%
+  dplyr::filter(strain2 == "N2" | strain1 == "N2") %>%
+  dplyr::mutate(N2.normed.estimate = if_else(strain1 == "N2", true = 1/Estimate, false = Estimate)) %>%
+  dplyr::mutate(N2.normed.diff = N2.normed.estimate-1,
+                focal.strain = if_else(strain1 == "N2", true = strain2, false = strain1)) %>%
   dplyr::left_join(.,tx.classes %>%
                      dplyr::rename(drug = Toxicant)) %>%
   dplyr::filter(p.value < BF)
@@ -1422,13 +1530,13 @@ strain.resistance <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
   tidyr::separate(strains, c("strain1","strain2"), sep = "/") %>%
-  dplyr::filter(strain2 == "PD1074" | strain1 == "PD1074") %>%
-  dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>%
-  dplyr::mutate(PD1074.normed.diff = PD1074.normed.estimate-1,
-                focal.strain = if_else(strain1 == "PD1074", true = strain2, false = strain1)) %>%
+  dplyr::filter(strain2 == "N2" | strain1 == "N2") %>%
+  dplyr::mutate(N2.normed.estimate = if_else(strain1 == "N2", true = 1/Estimate, false = Estimate)) %>%
+  dplyr::mutate(N2.normed.diff = N2.normed.estimate-1,
+                focal.strain = if_else(strain1 == "N2", true = strain2, false = strain1)) %>%
   dplyr::left_join(.,tx.classes %>%
                      dplyr::rename(drug = Toxicant)) %>%
-  dplyr::mutate(sens = if_else(PD1074.normed.diff > 0, "resistant", "sensitive")) %>%
+  dplyr::mutate(sens = if_else(N2.normed.diff > 0, "resistant", "sensitive")) %>%
   dplyr::group_by(focal.strain, sens) %>%
   dplyr::summarise(n = n()) %>%
   tidyr::pivot_wider(names_from = sens, values_from = n) %>%
@@ -1436,12 +1544,12 @@ strain.resistance <- dose.response.parameter.summaries[[6]] %>%
 
 
 strain.resistance.sig <- sig.EC.comps %>%
-  dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>%
-  dplyr::mutate(PD1074.normed.diff = PD1074.normed.estimate-1,
-                focal.strain = if_else(strain1 == "PD1074", true = strain2, false = strain1)) %>%
+  dplyr::mutate(N2.normed.estimate = if_else(strain1 == "N2", true = 1/Estimate, false = Estimate)) %>%
+  dplyr::mutate(N2.normed.diff = N2.normed.estimate-1,
+                focal.strain = if_else(strain1 == "N2", true = strain2, false = strain1)) %>%
   dplyr::left_join(.,tx.classes %>%
                      dplyr::rename(drug = Toxicant)) %>%
-  dplyr::mutate(sens = if_else(PD1074.normed.diff > 0, "resistant", "sensitive")) %>%
+  dplyr::mutate(sens = if_else(N2.normed.diff > 0, "resistant", "sensitive")) %>%
   dplyr::group_by(focal.strain, sens) %>%
   dplyr::summarise(n = n()) %>%
   tidyr::pivot_wider(names_from = sens, values_from = n)
@@ -1494,10 +1602,9 @@ write.csv(relative.potency.table, "manuscript_tables/table.1.csv", row.names = F
 
 
 
-  
-##############
-## FIGURE 3 ##
-##############
+################
+### Figure 4 ###
+################
 
 slopes.filtered <- EC10.filtered %>%
   dplyr::select(strain, drug) %>%
@@ -1514,8 +1621,8 @@ n.slope.comp.tests <- dose.response.parameter.summaries[[7]] %>%
   dplyr::mutate(strain1 = gsub(strain1, pattern = "strain", replacement = "")) %>%
   dplyr::mutate(strain2 = gsub(strain2, pattern = "strain", replacement = "")) %>% 
   dplyr::filter(drug %in% unique(EC10.filtered$drug),
-                strain2 == "PD1074" | strain1 == "PD1074") %>%
-  dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>% 
+                strain2 == "N2" | strain1 == "N2") %>%
+  dplyr::mutate(N2.normed.estimate = if_else(strain1 == "N2", true = 1/Estimate, false = Estimate)) %>% 
   nrow()
 BF <- 0.05/n.slope.comp.tests
 options(scipen = 999999)
@@ -1525,10 +1632,10 @@ relative.slope <- dose.response.parameter.summaries[[7]] %>%
   dplyr::mutate(strain1 = gsub(strain1, pattern = "strain", replacement = "")) %>%
   dplyr::mutate(strain2 = gsub(strain2, pattern = "strain", replacement = "")) %>% 
   dplyr::filter(drug %in% unique(EC10.filtered$drug),
-                strain2 == "PD1074" | strain1 == "PD1074") %>%
-  dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>%
-  dplyr::mutate(PD1074.normed.diff = PD1074.normed.estimate-1,
-                focal.strain = if_else(strain1 == "PD1074", true = strain2, false = strain1)) %>%
+                strain2 == "N2" | strain1 == "N2") %>%
+  dplyr::mutate(N2.normed.estimate = if_else(strain1 == "N2", true = 1/Estimate, false = Estimate)) %>%
+  dplyr::mutate(N2.normed.diff = N2.normed.estimate-1,
+                focal.strain = if_else(strain1 == "N2", true = strain2, false = strain1)) %>%
   dplyr::left_join(.,tx.classes %>%
                      dplyr::rename(drug = Toxicant)) %>%
   dplyr::mutate(big_class = gsub(big_class, pattern = "_", replacement = " ")) %>%
@@ -1558,9 +1665,9 @@ complete.slope.plot
 
 relative.slope.figure <- relative.slope %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
-  ggplot(., mapping = aes(y = drug, x = PD1074.normed.diff, 
-                          xmin = PD1074.normed.diff-Std..Error, 
-                          xmax = PD1074.normed.diff+Std..Error,
+  ggplot(., mapping = aes(y = drug, x = N2.normed.diff, 
+                          xmin = N2.normed.diff-Std..Error, 
+                          xmax = N2.normed.diff+Std..Error,
                           color = focal.strain,
                           alpha = sig)) + 
   theme_bw(base_size = 11) +
@@ -1578,7 +1685,7 @@ relative.slope.figure <- relative.slope %>%
         panel.grid = element_blank(),
         strip.text.y = element_text(angle = 0,size = 9),
         legend.position = "top") + 
-  labs(x = "Relative Slope Compared to Reference (PD1074)")
+  labs(x = "Relative Slope Compared to Reference (N2)")
 relative.slope.figure
 fig.3.legend <- cowplot::get_legend(complete.slope.plot)
 slope.fig.3 <- cowplot::plot_grid(complete.slope.plot +  
@@ -1591,7 +1698,7 @@ slope.fig.3 <- cowplot::plot_grid(complete.slope.plot +
                                  rel_widths = c(0.9,1), labels = "AUTO")
 complete.slope.fig.3.plot <- cowplot::plot_grid(slope.fig.3, fig.3.legend, rel_heights = c(20,2), ncol = 1)
 complete.slope.fig.3.plot
-ggsave(complete.slope.fig.3.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.3.png", width = 7.5, height = 5)
+ggsave(complete.slope.fig.3.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.4.png", width = 7.5, height = 5)
 
 
 slope.aov.nested <- slopes.filtered %>%
@@ -1655,7 +1762,7 @@ dose.response.parameter.summaries[[7]] %>%
   dplyr::mutate(strain1 = gsub(strain1, pattern = "strain", replacement = "")) %>%
   dplyr::mutate(strain2 = gsub(strain2, pattern = "strain", replacement = "")) %>% 
   dplyr::filter(drug %in% unique(EC10.filtered$drug),
-                strain2 == "PD1074" | strain1 == "PD1074")
+                strain2 == "N2" | strain1 == "N2")
 
 sig.EC.comps <- dose.response.parameter.summaries[[7]] %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
@@ -1663,10 +1770,10 @@ sig.EC.comps <- dose.response.parameter.summaries[[7]] %>%
   dplyr::mutate(strain1 = gsub(strain1, pattern = "strain", replacement = "")) %>%
   dplyr::mutate(strain2 = gsub(strain2, pattern = "strain", replacement = "")) %>% 
   dplyr::filter(drug %in% unique(EC10.filtered$drug),
-                strain2 == "PD1074" | strain1 == "PD1074") %>%
-  dplyr::mutate(PD1074.normed.estimate = if_else(strain1 == "PD1074", true = 1/Estimate, false = Estimate)) %>%
-  dplyr::mutate(PD1074.normed.diff = PD1074.normed.estimate-1,
-                focal.strain = if_else(strain1 == "PD1074", true = strain2, false = strain1)) %>%
+                strain2 == "N2" | strain1 == "N2") %>%
+  dplyr::mutate(N2.normed.estimate = if_else(strain1 == "N2", true = 1/Estimate, false = Estimate)) %>%
+  dplyr::mutate(N2.normed.diff = N2.normed.estimate-1,
+                focal.strain = if_else(strain1 == "N2", true = strain2, false = strain1)) %>%
   dplyr::left_join(.,tx.classes %>%
                      dplyr::rename(drug = Toxicant)) %>%
   dplyr::filter(p.value < BF)
@@ -1689,7 +1796,7 @@ sig.slope.comps %>%
 
 
 slope.comp.sig <- sig.slope.comps %>%
-  dplyr::mutate(sens = if_else(PD1074.normed.diff > 0, "steep", "shallow")) %>%
+  dplyr::mutate(sens = if_else(N2.normed.diff > 0, "steep", "shallow")) %>%
   dplyr::group_by(focal.strain, sens) %>%
   dplyr::count() %>%
   tidyr::pivot_wider(names_from = sens, values_from = n)
@@ -1721,45 +1828,13 @@ c(mean(unlist(strain.sensitive.fisher.reps)),sd(unlist(strain.sensitive.fisher.r
 
 
 
-##############################
-### HERITABILITY/ FIGURE 4 ###
-##############################
+################
+### Figure 5 ###
+################
 all.heritabilities <- purrr::map2(tx.nested.dose.responses$data,
                                   tx.nested.dose.responses$drug,
                                   heritability.calculation)
-gather.herit.ranges <- function(all.herits){
-  print(all.herits[[1]][[3]]$drug)
-  dose.herits <- list()
-  for(i in 1:length(all.herits)){
-    if(length(all.herits[[i]]) == 3){
-      H2.estimate <- all.herits[[i]][[1]] %>%
-        dplyr::rename(H2.upper = upper, H2.lower = lower)
-      
-      h2.estimate <- all.herits[[i]][[3]] %>%
-        dplyr::rename(h2.upper = upper, h2.lower = lower)
-      
-      dose.herits[[i]] <- H2.estimate %>%
-        dplyr::full_join(h2.estimate,.) %>%
-        suppressMessages() %>%
-        dplyr::select(drug, concentration_um, everything())
-    } else {
-      H2.estimate <- all.herits[[i]][[1]] %>%
-        dplyr::rename(H2.upper = upper, H2.lower = lower)
-      
-      h2.estimate <- all.herits[[i]][[2]] %>%
-        dplyr::rename(h2.upper = upper, h2.lower = lower)
-      
-      dose.herits[[i]] <- H2.estimate %>%
-        dplyr::full_join(h2.estimate,.) %>%
-        suppressMessages() %>%
-        dplyr::select(drug, concentration_um, everything())
-    }
-    
-  }
-  dose.herits %>% Reduce(rbind,.)
-}
 summarized.heritabilities <- purrr::map(all.heritabilities, gather.herit.ranges)
-
 summarized.heritabilities.df <- Reduce(rbind,summarized.heritabilities) %>%
   dplyr::filter(h2 != "NA",
                 drug %in% unique(EC10.filtered$drug),
@@ -1774,30 +1849,7 @@ summarized.heritabilities.df <- Reduce(rbind,summarized.heritabilities) %>%
                      dplyr::rename(drug = Toxicant)) %>%
   dplyr::mutate(big_class = gsub(big_class, pattern = "_", replacement = " "))
 
-plot_HH <- function(herit.data){
-  ggplot(herit.data, mapping = aes(x = H2, y = h2, colour = log(concentration_um))) + 
-    theme_bw(base_size = 11) +
-    geom_abline(slope = 1, alpha = 0.5, linetype = 3, size = 0.25) +
-    # geom_smooth(method = "lm", se = F, colour = "black", linetype = 1, size = 0.5) +
-    # stat_smooth(method="lm_right", fullrange=TRUE, colour = "black", se = F, size = 0.5, linetype = 1,alpha = 0.5) + 
-    geom_errorbar(aes(ymin = h2.lower, ymax = h2.upper), size = 0.2) +
-    geom_errorbarh(aes(xmin = H2.lower, xmax = H2.upper), size = 0.2) + 
-    facet_grid(. ~ drug) + 
-    scale_colour_gradient2(low = "darkblue", mid = "violet", high = "darkred", midpoint = 2, 
-                           name = expression(log[10](Concentration (µM)))) + 
-    theme(panel.grid = element_blank(),
-          axis.title.y = element_text(size = 8.5, angle = 0, vjust = 0.5),
-          axis.title.x = element_text(size = 8.5),
-          axis.text = element_text(size = 7), 
-          strip.text = element_text(size = 7),
-          legend.position="bottom",
-          legend.text = element_text(size = 7),
-          legend.title = element_text(size = 7)) + 
-    scale_x_continuous(breaks = seq(0,1,0.5), limits = c(0,1)) + 
-    scale_y_continuous(breaks = seq(0,1,0.5), limits = c(0,1)) + 
-    labs(x = bquote(italic(H^2)),
-         y = bquote(italic(h^2)))
-}
+
 
 flame.HH <- summarized.heritabilities.df %>%
   dplyr::filter(big_class == "Flame Retardant") %>%
@@ -1839,10 +1891,13 @@ heritability.summary.plot <- cowplot::plot_grid(A, B, C, fig.4.legend, ncol = 1,
                                                                                                  1, 
                                                                                                  0.1))
 ggsave(heritability.summary.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), 
-       filename = "manuscript_figures/fig.4.png", width = 5, height = 8)
+       filename = "manuscript_figures/fig.5.png", width = 5, height = 8)
 
 
 
+################
+### Figure 6 ###
+################
 
 nested.sum.herits <- summarized.heritabilities.df %>%
   dplyr::group_by(drug) %>%
@@ -1934,26 +1989,12 @@ strain.nested.EC10 <- EC10 %>%
   dplyr::group_by(strain) %>%
   tidyr::nest()
 
-h2.comps.to.individual.strains <- function(EC10, this.strain){
-  strain.EC10.comp <- EC10 %>%
-    dplyr::filter(drug %in% h2.comp.table$Toxicant) %>%
-    dplyr::select(drug, Estimate) %>%
-    dplyr::rename(Toxicant = drug) %>%
-    dplyr::left_join(., h2.comp.table %>%
-                       dplyr::select(Toxicant, `Top Heritable Dose`))
-  strain.h2.comp.r2 <- summary(lm(data = strain.EC10.comp, formula = log10(`Top Heritable Dose`) ~ log10(Estimate)))
-  lm.params <- list(r2 = format(strain.h2.comp.r2$r.squared, digits = 3),
-       pval = format(as.numeric(pf(strain.h2.comp.r2$fstatistic[1],
-                                   strain.h2.comp.r2$fstatistic[2],
-                                   strain.h2.comp.r2$fstatistic[3],
-                                   lower.tail=FALSE)), digits=3)) %>% 
-    data.frame() %>%
-    dplyr::mutate(strain = this.strain)
-  
-}
-purrr::map2(strain.nested.EC10$data,
-            strain.nested.EC10$strain,
-            h2.comps.to.individual.strains)
+
+
+# 
+# purrr::map2(strain.nested.EC10$data,
+#             strain.nested.EC10$strain,
+#             h2.comps.to.individual.strains)
 
 h2.comp.r2 <- summary(lm(data = h2.comp.table, formula = log10(`Top Heritable Dose`) ~ log10(`Closest Dosage to EC10`)))
 l <- list(r2 = format(h2.comp.r2$r.squared, digits = 3),
@@ -1980,11 +2021,7 @@ h2.comp.figure <- ggplot() +
   labs(x = expression(log[10](`Closest Dosage to EC10 `(µM))),
        y = expression(log[10](`Most Heritable Dosage `(µM))))
 ggsave(h2.comp.figure + theme(plot.background = element_rect(fill = "white",colour = NA)), 
-       filename = "manuscript_figures/fig.5.png", width = 3.5, height = 3.5)
-
-
-
-
+       filename = "manuscript_figures/fig.6.png", width = 3.5, height = 3.5)
 
 
 pivoted.top.herits <- max.H2 %>%

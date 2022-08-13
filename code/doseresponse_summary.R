@@ -1280,21 +1280,29 @@ ggsave(RC301_Malathion, filename = "manuscript_figures/RC301_malathion.png", wid
 ### Supplemental Figures 5-29 ###
 #################################
 supp.DR.dodge.widths <- c(rep(0.15, 12),0.04, 0.08,rep(0.04, 2),0.09, 0.04, 0.02,rep(0.10, 2),0.04,0.02,rep(0.04,2))
+DR.theme <- ggplot2::theme(axis.text = element_text(size = 7),
+                           axis.title = element_text(size = 7), 
+                           title = element_text(size = 7))
 for(i in 1:length(tx.nested.dose.responses$data)){
   supp.DR <- dose.response.plots.only(tx.nested.dose.responses$data[[i]],
                                       tx.nested.dose.responses$drug[[i]],
-                                      supp.DR.dodge.widths[[i]])
-  ggsave(supp.DR, filename = paste0("manuscript_figures/supp.fig.", i + 4,".png"), width = 6, height = 6)
+                                      supp.DR.dodge.widths[[i]],
+                                      SE.drc.point.size = 0.05) 
+  assign(paste0(gsub(tx.nested.dose.responses$drug[[i]],
+                     pattern = " ",
+                     replacement = "_"),"_SUPP_PANEL"), 
+         value = supp.DR + 
+           DR.theme + 
+           ggplot2::theme(legend.position = "none"))
+  ggsave(supp.DR, filename = paste0("manuscript_figures/supp.fig.", i + 5,".png"), width = 6, height = 6)
 }
 
+supp.fig.5 <- cowplot::plot_grid(plotlist = mget(list(ls(pattern = "SUPP_PANEL"))[[1]]), nrow = 5, cols = 5)
+ggsave(supp.fig.5,filename = "manuscript_figures/supp.fig.5.png", height = 10, width = 10)
 
 ################
 ### Figure 2 ###
 ################
-DR.theme <- ggplot2::theme(axis.text = element_text(size = 7),
-                           axis.title = element_text(size = 7), 
-                           title = element_text(size = 7))
-
 nickelDR <- dose.response.plots.only(tx.nested.dose.responses$data[[6]],
                                      tx.nested.dose.responses$drug[[6]],
                                      supp.DR.dodge.widths[[6]], 
@@ -1345,31 +1353,42 @@ ggsave(DR.overview.fig2 + theme(plot.background = element_rect(fill = "white",co
 
 
 
-
-
 ################
 ### Figure 3 ###
 ################
+
 complete.EC10.plot <- EC10.filtered %>%
   dplyr::filter(!drug %in% c("Malathion","Deltamethrin")) %>%
-  ggplot(., mapping = aes(y = drug, x = Estimate, xmin = Lower, xmax = Upper,
+  ggplot(., mapping = aes(x = strain, y = Estimate, ymin = Lower, ymax = Upper,
                           color = strain)) + 
   theme_bw(base_size = 11) + 
   geom_pointrange(position = position_quasirandom(groupOnX = FALSE),
-                  size = 0.25) +
-  scale_x_log10() + 
+                  size = 0.5) +
   scale_color_manual(values = strain_colors, name = "Strain") + 
-  facet_grid(big_class~., scales = "free", space = "free") + 
-  theme(strip.text.y = element_text(angle = 0, size = 9),
-        axis.text = element_text(color = "black", size = 9),
-        axis.title.x = element_text(size = 9),
-        axis.title.y = element_blank(),
+  facet_wrap(drug ~., scales = "free", nrow = 7) + 
+  theme(strip.text = element_text(angle = 0, size = 10.5),
+        axis.text = element_text(color = "black"),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
         panel.grid = element_blank(),
         legend.position = "top") + 
-  labs(x = "EC10 Estimate (µM)")
-
+  labs(y = "EC10 Estimate (µM)",
+       x = "Strain")
 complete.EC10.plot
 
+EC10.estimates.table <- EC10.filtered %>%
+  dplyr::filter(!drug %in% c("Malathion","Deltamethrin")) %>%
+  dplyr::rename(Toxicant = drug,
+                EC10 = Estimate,
+                SE = Std..Error) %>%
+  dplyr::select(Toxicant, EC10, SE, strain) %>%
+  dplyr::mutate(EC10 = round(EC10,2),
+                SE = round(SE,2),
+                Toxicant = if_else(Toxicant == "2,4-D", true = "2_4-D", false = Toxicant)) %>% 
+  tidyr::unite("EC10 (µM)",EC10:SE, 
+               sep = " ± ") %>%
+  tidyr::pivot_wider(names_from = strain, values_from = `EC10 (µM)`)
+write.csv(EC10.estimates.table, "manuscript_tables/supp.table.3.csv", row.names = F, quote = F)
 
 n.EC.comp.tests <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(drug %in% EC10.filtered$drug) %>%
@@ -1406,19 +1425,16 @@ EC10.relative.potency.figure <- EC10.relative.potency %>%
   theme_bw(base_size = 11) +
   geom_vline(xintercept = 0, linetype = 3, colour = "orange") + 
   geom_pointrange(position = position_dodge(width = 0.2),
-                  size = 0.25) + 
+                  size = 0.5) + 
   scale_color_manual(values = strain_colors[c(1,3:8)], name = "Strain") +
   scale_alpha_manual(values = c(0.15,1), guide = "none") +
   facet_grid(big_class~., scales = "free", space = "free") + 
-  theme(axis.text.y = element_blank(),
-        axis.text.x = element_text(color = "black", size = 9),
-        axis.ticks.y = element_blank(),
-        axis.title.x = element_text(size = 9),
+  theme(axis.text.y = element_text(color = "black", size = 11),
+        axis.text.x = element_text(color = "black"),
         axis.title.y = element_blank(),
         panel.grid = element_blank(),
-        strip.text.y = element_text(angle = 0,size = 9),
+        strip.text.y = element_text(angle = 0),
         legend.position = "top") + 
-  # xlim(c(-2,2)) +
   labs(x = "Resistance Compared to Reference (N2)")
 EC10.relative.potency.figure
 
@@ -1430,10 +1446,11 @@ EC10.fig.2 <- cowplot::plot_grid(complete.EC10.plot +
                    EC10.relative.potency.figure + 
                      theme(plot.margin = unit(c(0.5,0.5,0.25,0.5), "cm"),
                            legend.position = "none"), 
-                   rel_widths = c(0.9,1), labels = "AUTO")
-complete.EC10.fig.2.plot <- cowplot::plot_grid(EC10.fig.2, fig.2.legend, rel_heights = c(20,2), ncol = 1)
-complete.EC10.fig.2.plot
-ggsave(complete.EC10.fig.2.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.3.png", width = 7.5, height = 5)
+                   rel_widths = c(1.2,1), labels = "AUTO")
+complete.EC10.fig.2.plot <- cowplot::plot_grid(EC10.fig.2, 
+                                               fig.2.legend, 
+                                               rel_heights = c(20,2), ncol = 1)
+ggsave(complete.EC10.fig.2.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.3.png", width = 12, height = 8)
 
 
 
@@ -1492,7 +1509,7 @@ EC10.aov.list.tr[[2]][[3]][[2]] %>%
 
 ## EC10 Relative Potency Tests ##
 EC10.relative.potency.supp.table <- dose.response.parameter.summaries[[6]] %>%
-  dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
+  dplyr::filter(!drug %in% c("Deltamethrin","Malathion","Chlorfenapyr","Manganese(II) chloride")) %>%
   tidyr::separate(comps, c("strains","fracs"), sep = ":") %>%
   tidyr::separate(strains, c("strain1","strain2"), sep = "/") %>%
   dplyr::mutate(`p < 0.05` = if_else(condition = p.value < 0.05, true = "T", false = "F"),
@@ -1504,7 +1521,7 @@ EC10.relative.potency.supp.table <- dose.response.parameter.summaries[[6]] %>%
                 Toxicant = drug) %>%
   dplyr::select(Toxicant, strain1, strain2, everything()) %>%
   data.frame()
-write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.3.csv", row.names = F)
+write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.5.csv", row.names = F)
 
 sig.EC.comps <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(drug %in% EC10.filtered$drug) %>%
@@ -1614,6 +1631,19 @@ slopes.filtered <- EC10.filtered %>%
   dplyr::filter(metric == "b") %>%
   dplyr::mutate(big_class = gsub(big_class, pattern = "_", replacement = " "))
 
+slope.estimates.table <- slopes.filtered %>%
+  dplyr::filter(!drug %in% c("Malathion","Deltamethrin")) %>%
+  dplyr::rename(Toxicant = drug,
+                Slope = Estimate,
+                SE = Std..Error) %>%
+  dplyr::select(Toxicant, Slope, SE, strain) %>%
+  dplyr::mutate(Slope = round(Slope,2),
+                SE = round(SE,2),
+                Toxicant = if_else(Toxicant == "2,4-D", true = "2_4-D", false = Toxicant)) %>% 
+  tidyr::unite("Slope",Slope:SE, 
+               sep = " ± ") %>%
+  tidyr::pivot_wider(names_from = strain, values_from = Slope)
+write.csv(slope.estimates.table, "manuscript_tables/supp.table.4.csv", row.names = F, quote = F)
 
 n.slope.comp.tests <- dose.response.parameter.summaries[[7]] %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
@@ -1642,25 +1672,40 @@ relative.slope <- dose.response.parameter.summaries[[7]] %>%
   dplyr::mutate(start = 1,
                 sig = if_else(condition = p.value < BF, true = "SIG", false = "NONSIG"))
 
-
+## slope Relative Potency Tests ##
+slope.relative.potency.supp.table <- dose.response.parameter.summaries[[7]] %>%
+  dplyr::filter(!drug %in% c("Deltamethrin","Malathion","Chlorfenapyr","Manganese(II) chloride")) %>%
+  tidyr::separate(comps, c("strain1","strain2"), sep = "/") %>%
+  dplyr::mutate(strain1 = gsub(strain1,pattern = "strain",replacement = ""),
+                strain2 = gsub(strain2,pattern = "strain",replacement = "")) %>%
+  dplyr::mutate(`p < 0.05` = if_else(condition = p.value < 0.05, true = "T", false = "F"),
+                p.value = round(p.value,6),
+                p.value = if_else(p.value < 0.000001, true =  "<< 0.00001", false = as.character(p.value))) %>%
+  dplyr::rename(`Relative Potency Estimate` = Estimate,
+                SE = Std..Error,
+                Toxicant = drug) %>%
+  dplyr::select(Toxicant, strain1, strain2, everything()) %>%
+  data.frame()
+write.csv(slope.relative.potency.supp.table, "manuscript_tables/supp.table.6.csv", row.names = F, quote = F)
 
 
 complete.slope.plot <- slopes.filtered %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
-  ggplot(., mapping = aes(y = drug, x = Estimate, xmin = Estimate-Std..Error, xmax = Estimate+Std..Error,
+  ggplot(., mapping = aes(x = strain, y = Estimate, ymin = Estimate-Std..Error, ymax = Estimate+Std..Error,
                           color = strain)) + 
   theme_bw(base_size = 11) + 
   geom_pointrange(position = position_quasirandom(groupOnX = FALSE),
-                  size = 0.25) +
+                  size = 0.5) +
   scale_color_manual(values = strain_colors, name = "Strain") + 
-  facet_grid(big_class~., scales = "free", space = "free") + 
-  theme(strip.text.y = element_text(angle = 0, size = 9),
-        axis.text = element_text(color = "black", size = 9),
-        axis.title.x = element_text(size = 9),
-        axis.title.y = element_blank(),
+  facet_wrap(drug ~., scales = "free", nrow = 7) + 
+  theme(strip.text = element_text(angle = 0, size = 10.5),
+        axis.text = element_text(color = "black"),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
         panel.grid = element_blank(),
         legend.position = "top") + 
-  labs(x = "Estimated Slope")
+  labs(y = "Estimated Slope",
+       x = "Strain")
 complete.slope.plot
 
 relative.slope.figure <- relative.slope %>%
@@ -1673,32 +1718,31 @@ relative.slope.figure <- relative.slope %>%
   theme_bw(base_size = 11) +
   geom_vline(xintercept = 0, linetype = 3, colour = "orange") + 
   geom_pointrange(position = position_dodge(width = 0.2),
-                  size = 0.25) + 
+                  size = 0.5) + 
   scale_color_manual(values = strain_colors[c(1,3:8)], name = "Strain") +
   scale_alpha_manual(values = c(0.15,1), guide = "none") +
   facet_grid(big_class~., scales = "free", space = "free") + 
-  theme(axis.text.y = element_blank(),
-        axis.text.x = element_text(color = "black", size = 9),
-        axis.ticks.y = element_blank(),
-        axis.title.x = element_text(size = 9),
+  theme(axis.text.x = element_text(color = "black"),
+        axis.text.y = element_text(color = "black", size = 11.5),
         axis.title.y = element_blank(),
         panel.grid = element_blank(),
-        strip.text.y = element_text(angle = 0,size = 9),
+        strip.text.y = element_text(angle = 0),
         legend.position = "top") + 
   labs(x = "Relative Slope Compared to Reference (N2)")
 relative.slope.figure
 fig.3.legend <- cowplot::get_legend(complete.slope.plot)
 slope.fig.3 <- cowplot::plot_grid(complete.slope.plot +  
-                                   theme(strip.background = element_blank(),strip.text.y = element_blank(),
+                                   theme(strip.background = element_blank(),
+                                         strip.text.y = element_blank(),
                                          plot.margin = unit(c(0.5,0.5,0.25,0.5), "cm"),
                                          legend.position = "none"),
                                  relative.slope.figure + 
                                    theme(plot.margin = unit(c(0.5,0.5,0.25,0.5), "cm"),
                                          legend.position = "none"), 
-                                 rel_widths = c(0.9,1), labels = "AUTO")
+                                 rel_widths = c(1.2,1), labels = "AUTO")
 complete.slope.fig.3.plot <- cowplot::plot_grid(slope.fig.3, fig.3.legend, rel_heights = c(20,2), ncol = 1)
 complete.slope.fig.3.plot
-ggsave(complete.slope.fig.3.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.4.png", width = 7.5, height = 5)
+ggsave(complete.slope.fig.3.plot + theme(plot.background = element_rect(fill = "white",colour = NA)), filename = "manuscript_figures/fig.4.png", width = 12, height = 8)
 
 
 slope.aov.nested <- slopes.filtered %>%

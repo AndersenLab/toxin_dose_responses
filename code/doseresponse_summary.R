@@ -1521,7 +1521,7 @@ EC10.relative.potency.supp.table <- dose.response.parameter.summaries[[6]] %>%
                 Toxicant = drug) %>%
   dplyr::select(Toxicant, strain1, strain2, everything()) %>%
   data.frame()
-write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.5.csv", row.names = F)
+write.csv(EC10.relative.potency.supp.table, "manuscript_tables/supp.table.4.csv", row.names = F)
 
 sig.EC.comps <- dose.response.parameter.summaries[[6]] %>%
   dplyr::filter(drug %in% EC10.filtered$drug) %>%
@@ -1643,7 +1643,7 @@ slope.estimates.table <- slopes.filtered %>%
   tidyr::unite("Slope",Slope:SE, 
                sep = " ± ") %>%
   tidyr::pivot_wider(names_from = strain, values_from = Slope)
-write.csv(slope.estimates.table, "manuscript_tables/supp.table.4.csv", row.names = F, quote = F)
+write.csv(slope.estimates.table, "manuscript_tables/supp.table.5.csv", row.names = F, quote = F)
 
 n.slope.comp.tests <- dose.response.parameter.summaries[[7]] %>%
   dplyr::filter(!drug %in% c("Deltamethrin","Malathion")) %>%
